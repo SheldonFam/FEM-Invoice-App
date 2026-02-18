@@ -13,30 +13,38 @@ export default function InvoiceListPage() {
     ? invoices
     : invoices.filter(inv => filters.includes(inv.status))
 
-  const subtitle = filtered.length === 0
-    ? 'No invoices'
-    : `There are ${filtered.length} total invoices`
+  const count = filtered.length
 
   return (
-    <div className="mx-auto max-w-[730px] px-6 py-[72px]">
+    <div className="mx-auto max-w-[730px] px-6 py-8 md:py-[72px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-ink dark:text-white">Invoices</h1>
-          <p className="mt-1 text-sm text-muted">{subtitle}</p>
+          <h1 className="text-xl font-bold text-ink dark:text-white md:text-2xl">Invoices</h1>
+          <p className="mt-1 text-sm text-muted">
+            <span className="hidden md:inline">
+              {count === 0 ? 'No invoices' : `There are ${count} total invoices`}
+            </span>
+            <span className="md:hidden">
+              {count === 0 ? 'No invoices' : `${count} invoices`}
+            </span>
+          </p>
         </div>
 
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-5 md:gap-10">
           <FilterDropdown />
 
           <button
             onClick={() => setIsFormOpen(true)}
-            className="flex cursor-pointer items-center gap-4 rounded-full bg-purple py-2 pl-2 pr-6 text-white transition-colors hover:bg-purple-light"
+            className="flex cursor-pointer items-center gap-2 rounded-full bg-purple py-2 pl-2 pr-4 text-white transition-colors hover:bg-purple-light md:gap-4 md:pr-6"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
               <img src="/assets/icon-plus.svg" alt="" width={11} height={11} />
             </span>
-            <span className="text-sm font-bold">New Invoice</span>
+            <span className="text-sm font-bold">
+              <span className="hidden md:inline">New Invoice</span>
+              <span className="md:hidden">New</span>
+            </span>
           </button>
         </div>
       </div>

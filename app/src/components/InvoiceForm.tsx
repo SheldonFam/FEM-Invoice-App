@@ -112,12 +112,22 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={mode === 'create' ? 'New Invoice' : `Edit invoice ${invoice?.id}`}
-        className={`fixed top-0 left-[103px] z-40 flex h-screen w-[616px] flex-col bg-card transition-transform duration-300 ease-in-out dark:bg-card-dark ${
+        className={`fixed top-0 left-0 z-40 flex h-screen w-full flex-col bg-card transition-transform duration-300 ease-in-out dark:bg-card-dark md:left-[103px] md:w-[616px] ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-14 pt-14 pb-8">
+        <div className="flex-1 overflow-y-auto px-6 pt-8 pb-8 md:px-14 md:pt-14">
+          {/* Mobile back button */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="mb-6 inline-flex items-center gap-6 text-sm font-bold text-ink transition-colors hover:text-muted dark:text-white dark:hover:text-muted md:hidden"
+          >
+            <img src="/assets/icon-arrow-left.svg" alt="" width={7} height={10} />
+            Go back
+          </button>
+
           {/* Title */}
           <h2 className="text-xl font-bold text-ink dark:text-white">
             {mode === 'create' ? 'New Invoice' : (
@@ -133,16 +143,18 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
                 <FormField label="Street Address" error={errors.senderAddress?.street?.message}>
                   <input {...register('senderAddress.street')} className={cx(!!errors.senderAddress?.street)} />
                 </FormField>
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
                   <FormField label="City" error={errors.senderAddress?.city?.message}>
                     <input {...register('senderAddress.city')} className={cx(!!errors.senderAddress?.city)} />
                   </FormField>
                   <FormField label="Post Code" error={errors.senderAddress?.postCode?.message}>
                     <input {...register('senderAddress.postCode')} className={cx(!!errors.senderAddress?.postCode)} />
                   </FormField>
-                  <FormField label="Country" error={errors.senderAddress?.country?.message}>
-                    <input {...register('senderAddress.country')} className={cx(!!errors.senderAddress?.country)} />
-                  </FormField>
+                  <div className="col-span-2 md:col-span-1">
+                    <FormField label="Country" error={errors.senderAddress?.country?.message}>
+                      <input {...register('senderAddress.country')} className={cx(!!errors.senderAddress?.country)} />
+                    </FormField>
+                  </div>
                 </div>
               </div>
             </fieldset>
@@ -165,16 +177,18 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
                 <FormField label="Street Address" error={errors.clientAddress?.street?.message}>
                   <input {...register('clientAddress.street')} className={cx(!!errors.clientAddress?.street)} />
                 </FormField>
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 gap-6 md:grid-cols-3">
                   <FormField label="City" error={errors.clientAddress?.city?.message}>
                     <input {...register('clientAddress.city')} className={cx(!!errors.clientAddress?.city)} />
                   </FormField>
                   <FormField label="Post Code" error={errors.clientAddress?.postCode?.message}>
                     <input {...register('clientAddress.postCode')} className={cx(!!errors.clientAddress?.postCode)} />
                   </FormField>
-                  <FormField label="Country" error={errors.clientAddress?.country?.message}>
-                    <input {...register('clientAddress.country')} className={cx(!!errors.clientAddress?.country)} />
-                  </FormField>
+                  <div className="col-span-2 md:col-span-1">
+                    <FormField label="Country" error={errors.clientAddress?.country?.message}>
+                      <input {...register('clientAddress.country')} className={cx(!!errors.clientAddress?.country)} />
+                    </FormField>
+                  </div>
                 </div>
               </div>
             </fieldset>
@@ -211,7 +225,7 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
               <h3 className="mb-4 text-lg font-bold text-[#777F98]">Item List</h3>
 
               {fields.length > 0 && (
-                <div className="mb-3 grid grid-cols-[1fr_64px_100px_80px_13px] items-center gap-x-4">
+                <div className="mb-3 hidden grid-cols-[1fr_64px_100px_80px_13px] items-center gap-x-4 md:grid">
                   <span className="text-sm text-label">Item Name</span>
                   <span className="text-sm text-label">Qty.</span>
                   <span className="text-sm text-label">Price</span>
@@ -226,33 +240,50 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
                   const price = Number(watchedItems?.[i]?.price) || 0
 
                   return (
-                    <div key={field.id} className="grid grid-cols-[1fr_64px_100px_80px_13px] items-center gap-x-4">
-                      <input
-                        placeholder="Item name"
-                        {...register(`items.${i}.name`)}
-                        className={cx(!!errors.items?.[i]?.name)}
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        {...register(`items.${i}.quantity`, { valueAsNumber: true })}
-                        className={cx(!!errors.items?.[i]?.quantity)}
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        {...register(`items.${i}.price`, { valueAsNumber: true })}
-                        className={cx(!!errors.items?.[i]?.price)}
-                      />
-                      <span className="text-sm font-bold text-muted">
-                        {formatCurrency(qty * price)}
-                      </span>
+                    <div key={field.id} className="grid grid-cols-[64px_1fr_auto_auto] items-end gap-3 md:grid-cols-[1fr_64px_100px_80px_13px] md:items-center md:gap-x-4">
+                      {/* Item Name — full width on mobile, col 1 on desktop */}
+                      <div className="col-span-4 md:col-span-1">
+                        <label className="mb-2 block text-xs font-bold text-label md:hidden">Item Name</label>
+                        <input
+                          placeholder="Item name"
+                          {...register(`items.${i}.name`)}
+                          className={cx(!!errors.items?.[i]?.name)}
+                        />
+                      </div>
+                      {/* Qty */}
+                      <div>
+                        <label className="mb-2 block text-xs font-bold text-label md:hidden">Qty.</label>
+                        <input
+                          type="number"
+                          min={0}
+                          {...register(`items.${i}.quantity`, { valueAsNumber: true })}
+                          className={cx(!!errors.items?.[i]?.quantity)}
+                        />
+                      </div>
+                      {/* Price */}
+                      <div>
+                        <label className="mb-2 block text-xs font-bold text-label md:hidden">Price</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          {...register(`items.${i}.price`, { valueAsNumber: true })}
+                          className={cx(!!errors.items?.[i]?.price)}
+                        />
+                      </div>
+                      {/* Total */}
+                      <div>
+                        <span className="mb-2 block text-xs font-bold text-label md:hidden">Total</span>
+                        <span className="block py-4 text-sm font-bold text-muted">
+                          {formatCurrency(qty * price)}
+                        </span>
+                      </div>
+                      {/* Delete */}
                       <button
                         type="button"
                         onClick={() => remove(i)}
                         aria-label="Remove item"
-                        className="cursor-pointer opacity-60 transition-opacity hover:opacity-100"
+                        className="mb-[14px] cursor-pointer opacity-60 transition-opacity hover:opacity-100 md:mb-0"
                       >
                         <img src="/assets/icon-delete.svg" alt="" width={13} height={16} />
                       </button>
@@ -277,7 +308,7 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
         </div>
 
         {/* Fixed footer */}
-        <div className={`shrink-0 flex items-center gap-2 px-14 py-8 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_24px_rgba(0,0,0,0.3)] ${
+        <div className={`shrink-0 flex items-center gap-2 px-6 py-8 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_24px_rgba(0,0,0,0.3)] md:px-14 ${
           mode === 'create' ? 'justify-between' : 'justify-end'
         }`}>
           {mode === 'create' ? (

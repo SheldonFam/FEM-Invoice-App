@@ -16,7 +16,7 @@ export default function App() {
     <BrowserRouter>
       <div className="flex min-h-screen">
         <Sidebar />
-        <main className="ml-[103px] flex-1">
+        <main className="flex-1 pt-[72px] md:pt-0 md:ml-[103px]">
           <Routes>
             <Route path="/" element={<InvoiceListPage />} />
             <Route path="/:id" element={<InvoiceDetailPage />} />

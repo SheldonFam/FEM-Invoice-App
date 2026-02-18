@@ -22,8 +22,33 @@ export default function InvoiceDetailPage() {
     navigate('/')
   }
 
+  const actionButtons = (
+    <>
+      <button
+        onClick={() => setIsEditOpen(true)}
+        className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
+      >
+        Edit
+      </button>
+      <button
+        onClick={() => setIsDeleteOpen(true)}
+        className="cursor-pointer rounded-full bg-delete px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-delete-hover"
+      >
+        Delete
+      </button>
+      {invoice.status === 'pending' && (
+        <button
+          onClick={() => markAsPaid(invoice.id)}
+          className="cursor-pointer rounded-full bg-purple px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light"
+        >
+          Mark as Paid
+        </button>
+      )}
+    </>
+  )
+
   return (
-    <div className="mx-auto max-w-[730px] px-6 py-[72px]">
+    <div className="mx-auto max-w-[730px] px-6 py-8 pb-28 md:py-[72px] md:pb-[72px]">
       {/* Go back */}
       <Link
         to="/"
@@ -39,27 +64,9 @@ export default function InvoiceDetailPage() {
           <span className="text-sm text-muted">Status</span>
           <StatusBadge status={invoice.status} />
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsEditOpen(true)}
-            className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => setIsDeleteOpen(true)}
-            className="cursor-pointer rounded-full bg-delete px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-delete-hover"
-          >
-            Delete
-          </button>
-          {invoice.status === 'pending' && (
-            <button
-              onClick={() => markAsPaid(invoice.id)}
-              className="cursor-pointer rounded-full bg-purple px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light"
-            >
-              Mark as Paid
-            </button>
-          )}
+        {/* Desktop action buttons */}
+        <div className="hidden items-center gap-2 md:flex">
+          {actionButtons}
         </div>
       </div>
 
@@ -162,6 +169,11 @@ export default function InvoiceDetailPage() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Mobile action footer */}
+      <div className="fixed bottom-0 left-0 right-0 flex items-center justify-end gap-2 bg-card px-6 py-5 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] dark:bg-card-dark md:hidden">
+        {actionButtons}
       </div>
 
       {/* Delete modal */}

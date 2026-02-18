@@ -25,7 +25,8 @@ export default function FilterDropdown() {
         onClick={() => setIsOpen(o => !o)}
         className="flex cursor-pointer items-center gap-3 font-bold text-ink transition-colors hover:text-label dark:text-white dark:hover:text-label"
       >
-        Filter by status
+        <span className="hidden md:inline">Filter by status</span>
+        <span className="md:hidden">Filter</span>
         <img
           src="/assets/icon-arrow-down.svg"
           alt=""

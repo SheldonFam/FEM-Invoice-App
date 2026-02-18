@@ -4,14 +4,22 @@ export default function Sidebar() {
   const { isDark, toggle } = useThemeStore()
 
   return (
-    <aside className="fixed left-0 top-0 z-50 flex h-screen w-[103px] flex-col bg-sidebar">
+    <aside className="fixed left-0 top-0 z-50 flex bg-sidebar
+      h-[72px] w-full flex-row
+      md:h-screen md:w-[103px] md:flex-col">
+
       {/* Logo */}
-      <div className="flex aspect-square w-full items-center justify-center rounded-br-[20px] bg-purple">
+      <div className="flex items-center justify-center rounded-br-[20px] bg-purple
+        h-full w-[72px]
+        md:h-auto md:w-full md:aspect-square">
         <img src="/assets/logo.svg" alt="Invoice App" width={28} height={26} />
       </div>
 
-      {/* Bottom controls */}
-      <div className="mt-auto flex flex-col items-center gap-6 pb-8">
+      {/* Controls */}
+      <div className="flex items-center
+        ml-auto flex-row gap-6 px-6
+        md:ml-0 md:mt-auto md:flex-col md:gap-6 md:px-0 md:pb-8">
+
         <button
           onClick={toggle}
           aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -25,7 +33,8 @@ export default function Sidebar() {
           />
         </button>
 
-        <div className="h-px w-full bg-[#494E6E]" />
+        {/* Divider: vertical on mobile, horizontal on desktop */}
+        <div className="bg-[#494E6E] h-10 w-px md:h-px md:w-full" />
 
         <img
           src="/assets/image-avatar.jpg"
