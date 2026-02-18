@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+/* Class-based dark mode — toggled via .dark on <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* ── Brand ─────────────────────────────────────────── */
+  --color-purple:       #7C5DFA;
+  --color-purple-light: #9277FF;
+
+  /* ── Light surfaces ─────────────────────────────────── */
+  --color-surface:      #F8F8FB;
+  --color-card:         #FFFFFF;
+
+  /* ── Dark surfaces ──────────────────────────────────── */
+  --color-surface-dark: #141625;
+  --color-card-dark:    #1E2139;
+  --color-input-dark:   #252945;
+
+  /* ── Sidebar (same in both themes) ─────────────────── */
+  --color-sidebar:      #1E2139;
+
+  /* ── Text ───────────────────────────────────────────── */
+  --color-ink:          #0C0E16;
+  --color-body:         #373B53;
+  --color-muted:        #888EB0;
+  --color-label:        #7E88C3;
+  --color-fog:          #DFE3FA;
+
+  /* ── Borders ────────────────────────────────────────── */
+  --color-border:       #DFE3FA;
+  --color-border-dark:  #252945;
+
+  /* ── Status — paid ──────────────────────────────────── */
+  --color-paid:         #33D69F;
+  --color-paid-bg:      #F3FDFA;
+  --color-paid-bg-dark: #1F2B3F;
+
+  /* ── Status — pending ───────────────────────────────── */
+  --color-pending:      #FF8F00;
+  --color-pending-bg:      #FFF4DE;
+  --color-pending-bg-dark: #2B2736;
+
+  /* ── Status — draft ─────────────────────────────────── */
+  --color-draft:        #373B53;
+  --color-draft-dark:   #DFE3FA;
+  --color-draft-bg:     #F4F4F5;
+  --color-draft-bg-dark: #292D3F;
+
+  /* ── Destructive ────────────────────────────────────── */
+  --color-delete:       #EC5757;
+  --color-delete-hover: #FF9797;
+
+  /* ── Typography ─────────────────────────────────────── */
+  --font-sans: 'League Spartan', sans-serif;
+
+  --text-xs:   0.625rem;   /* 10px */
+  --text-sm:   0.75rem;    /* 12px */
+  --text-base: 0.9375rem;  /* 15px — League Spartan body */
+  --text-lg:   1.25rem;    /* 20px */
+  --text-xl:   1.5rem;     /* 24px */
+  --text-2xl:  2rem;       /* 32px */
+
+  /* ── Border radius ──────────────────────────────────── */
+  --radius-sm:    0.25rem;  /* 4px  — inputs, badges */
+  --radius-md:    0.5rem;   /* 8px  — cards */
+  --radius-full:  9999px;   /* pill — buttons, status badges */
+}
+
+/* ── Base ────────────────────────────────────────────── */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: var(--color-surface);
+    color: var(--color-ink);
+  }
+
+  html.dark body {
+    background-color: var(--color-surface-dark);
+    color: var(--color-fog);
+  }
+}
