@@ -1,19 +1,21 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { useInvoiceStore } from '../store/useInvoiceStore'
 import InvoiceCard from '../components/InvoiceCard'
 import FilterDropdown from '../components/FilterDropdown'
 import EmptyState from '../components/EmptyState'
 import InvoiceForm from '../components/InvoiceForm'
+import { useState } from 'react'
 
 export default function InvoiceListPage() {
-  const { invoices, filters } = useInvoiceStore()
+  const { invoices, filters, isLoading, fetchInvoices } = useInvoiceStore()
   const [isFormOpen, setIsFormOpen] = useState(false)
 
-  const filtered = filters.length === 0
-    ? invoices
-    : invoices.filter(inv => filters.includes(inv.status))
+  // Re-fetch whenever filters change
+  useEffect(() => {
+    fetchInvoices()
+  }, [filters.join(',')])  // eslint-disable-line react-hooks/exhaustive-deps
 
-  const count = filtered.length
+  const count = invoices.length
 
   return (
     <div className="mx-auto max-w-[730px] px-6 py-8 md:py-[72px]">
@@ -51,10 +53,20 @@ export default function InvoiceListPage() {
 
       {/* List */}
       <div className="mt-16 flex flex-col gap-4">
-        {filtered.length === 0
-          ? <EmptyState />
-          : filtered.map(inv => <InvoiceCard key={inv.id} invoice={inv} />)
-        }
+        {isLoading ? (
+          <div className="flex flex-col gap-4">
+            {[1, 2, 3].map(i => (
+              <div
+                key={i}
+                className="h-[72px] animate-pulse rounded-md bg-card dark:bg-card-dark md:h-[72px]"
+              />
+            ))}
+          </div>
+        ) : invoices.length === 0 ? (
+          <EmptyState />
+        ) : (
+          invoices.map(inv => <InvoiceCard key={inv.id} invoice={inv} />)
+        )}
       </div>
 
       <InvoiceForm

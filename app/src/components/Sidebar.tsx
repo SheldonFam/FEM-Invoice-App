@@ -1,7 +1,16 @@
+import { useNavigate } from 'react-router-dom'
 import { useThemeStore } from '../store/useThemeStore'
+import { useAuthStore } from '../store/useAuthStore'
 
 export default function Sidebar() {
   const { isDark, toggle } = useThemeStore()
+  const logout = useAuthStore(state => state.logout)
+  const navigate = useNavigate()
+
+  function handleLogout() {
+    logout()
+    navigate('/login')
+  }
 
   return (
     <aside className="fixed left-0 top-0 z-50 flex bg-sidebar
@@ -36,13 +45,19 @@ export default function Sidebar() {
         {/* Divider: vertical on mobile, horizontal on desktop */}
         <div className="bg-[#494E6E] h-10 w-px md:h-px md:w-full" />
 
-        <img
-          src="/assets/image-avatar.jpg"
-          alt="User avatar"
-          width={32}
-          height={32}
-          className="rounded-full"
-        />
+        <button
+          onClick={handleLogout}
+          aria-label="Sign out"
+          className="cursor-pointer opacity-60 transition-opacity hover:opacity-100"
+        >
+          <img
+            src="/assets/image-avatar.jpg"
+            alt="User avatar"
+            width={32}
+            height={32}
+            className="rounded-full"
+          />
+        </button>
       </div>
     </aside>
   )

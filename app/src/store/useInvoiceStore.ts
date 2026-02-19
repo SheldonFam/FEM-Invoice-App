@@ -1,96 +1,107 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import type { Invoice, InvoiceFormValues, InvoiceStatus, PaymentTerms } from '../types/invoice'
-import seedData from '../data.json'
-
-function generateId(): string {
-  const letters = Array.from({ length: 2 }, () =>
-    String.fromCharCode(65 + Math.floor(Math.random() * 26))
-  ).join('')
-  const digits = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
-  return letters + digits
-}
-
-function computePaymentDue(createdAt: string, paymentTerms: PaymentTerms): string {
-  const date = new Date(createdAt)
-  date.setDate(date.getDate() + paymentTerms)
-  return date.toISOString().split('T')[0]
-}
-
-function deriveItemTotals(values: InvoiceFormValues): Pick<Invoice, 'items' | 'total'> {
-  const items = values.items.map(item => ({
-    ...item,
-    total: item.quantity * item.price,
-  }))
-  return { items, total: items.reduce((sum, item) => sum + item.total, 0) }
-}
+import { api } from '../lib/api'
+import { fromApiInvoice, toApiCreateBody, toApiUpdateBody, type ApiInvoice } from '../lib/mappers'
+import type { Invoice, InvoiceFormValues, InvoiceStatus } from '../types/invoice'
 
 interface InvoiceStore {
   invoices: Invoice[]
   filters: InvoiceStatus[]
-  addInvoice: (values: InvoiceFormValues, status: 'draft' | 'pending') => void
-  updateInvoice: (id: string, values: InvoiceFormValues) => void
-  deleteInvoice: (id: string) => void
-  markAsPaid: (id: string) => void
+  isLoading: boolean
+  error: string | null
+
+  // Data fetching
+  fetchInvoices: () => Promise<void>
+  fetchInvoice: (id: string) => Promise<void>
+
+  // CRUD
+  addInvoice: (values: InvoiceFormValues, submitMode: 'draft' | 'pending') => Promise<void>
+  updateInvoice: (id: string, values: InvoiceFormValues) => Promise<void>
+  deleteInvoice: (id: string) => Promise<void>
+
+  // Status actions
+  markAsPaid: (id: string) => Promise<void>
+  duplicateInvoice: (id: string) => Promise<Invoice>
+
+  // UI state
   toggleFilter: (status: InvoiceStatus) => void
 }
 
-export const useInvoiceStore = create<InvoiceStore>()(
-  persist(
-    (set) => ({
-      invoices: seedData as Invoice[],
-      filters: [],
+export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
+  invoices: [],
+  filters: [],
+  isLoading: false,
+  error: null,
 
-      addInvoice: (values, status) => {
-        const invoice: Invoice = {
-          ...values,
-          ...deriveItemTotals(values),
-          id: generateId(),
-          paymentDue: computePaymentDue(values.createdAt, values.paymentTerms),
-          status,
-        }
-        set(state => ({ invoices: [invoice, ...state.invoices] }))
-      },
-
-      updateInvoice: (id, values) => {
-        set(state => ({
-          invoices: state.invoices.map(inv =>
-            inv.id !== id ? inv : {
-              ...inv,
-              ...values,
-              ...deriveItemTotals(values),
-              paymentDue: computePaymentDue(values.createdAt, values.paymentTerms),
-              // spec: editing a draft promotes it to pending
-              status: inv.status === 'draft' ? 'pending' : inv.status,
-            }
-          ),
-        }))
-      },
-
-      deleteInvoice: (id) => {
-        set(state => ({ invoices: state.invoices.filter(inv => inv.id !== id) }))
-      },
-
-      markAsPaid: (id) => {
-        set(state => ({
-          invoices: state.invoices.map(inv =>
-            inv.id === id ? { ...inv, status: 'paid' } : inv
-          ),
-        }))
-      },
-
-      toggleFilter: (status) => {
-        set(state => ({
-          filters: state.filters.includes(status)
-            ? state.filters.filter(f => f !== status)
-            : [...state.filters, status],
-        }))
-      },
-    }),
-    {
-      name: 'invoice-store',
-      // filters are ephemeral — only persist the invoice data
-      partialize: (state) => ({ invoices: state.invoices }),
+  fetchInvoices: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const { filters } = get()
+      const query = filters.length > 0 ? `?status=${filters.join(',')}` : ''
+      const data = await api.get<ApiInvoice[]>(`/invoices${query}`)
+      set({ invoices: data.map(fromApiInvoice), isLoading: false })
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Failed to load invoices', isLoading: false })
     }
-  )
-)
+  },
+
+  fetchInvoice: async (id) => {
+    set({ isLoading: true, error: null })
+    try {
+      const data = await api.get<ApiInvoice>(`/invoices/${id}`)
+      const invoice = fromApiInvoice(data)
+      set(state => ({
+        isLoading: false,
+        // Upsert into the invoices array
+        invoices: state.invoices.some(inv => inv.id === id)
+          ? state.invoices.map(inv => inv.id === id ? invoice : inv)
+          : [invoice, ...state.invoices],
+      }))
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : 'Invoice not found', isLoading: false })
+    }
+  },
+
+  addInvoice: async (values, submitMode) => {
+    const body = toApiCreateBody(values, submitMode)
+    const data = await api.post<ApiInvoice>('/invoices', body)
+    const invoice = fromApiInvoice(data)
+    set(state => ({ invoices: [invoice, ...state.invoices] }))
+  },
+
+  updateInvoice: async (id, values) => {
+    const body = toApiUpdateBody(values)
+    const data = await api.put<ApiInvoice>(`/invoices/${id}`, body)
+    const updated = fromApiInvoice(data)
+    set(state => ({
+      invoices: state.invoices.map(inv => inv.id === id ? updated : inv),
+    }))
+  },
+
+  deleteInvoice: async (id) => {
+    await api.delete(`/invoices/${id}`)
+    set(state => ({ invoices: state.invoices.filter(inv => inv.id !== id) }))
+  },
+
+  markAsPaid: async (id) => {
+    const data = await api.patch<ApiInvoice>(`/invoices/${id}/mark-paid`)
+    const updated = fromApiInvoice(data)
+    set(state => ({
+      invoices: state.invoices.map(inv => inv.id === id ? updated : inv),
+    }))
+  },
+
+  duplicateInvoice: async (id) => {
+    const data = await api.post<ApiInvoice>(`/invoices/${id}/duplicate`)
+    const invoice = fromApiInvoice(data)
+    set(state => ({ invoices: [invoice, ...state.invoices] }))
+    return invoice
+  },
+
+  toggleFilter: (status) => {
+    set(state => ({
+      filters: state.filters.includes(status)
+        ? state.filters.filter(f => f !== status)
+        : [...state.filters, status],
+    }))
+  },
+}))

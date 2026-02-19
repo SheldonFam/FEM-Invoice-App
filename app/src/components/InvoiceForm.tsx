@@ -68,13 +68,20 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
     return () => document.removeEventListener('keydown', handler)
   }, [isOpen, onClose])
 
-  function onSubmit(data: InvoiceFormValues) {
-    if (mode === 'create') {
-      addInvoice(data, submitMode.current)
-    } else if (invoice) {
-      updateInvoice(invoice.id, data)
+  async function onSubmit(data: InvoiceFormValues) {
+    try {
+      if (mode === 'create') {
+        await addInvoice(data, submitMode.current)
+      } else if (invoice) {
+        await updateInvoice(invoice.id, data)
+      }
+      onClose()
+    } catch (err) {
+      // RHF keeps isSubmitting=false after this; surface error via setError
+      form.setError('root', {
+        message: err instanceof Error ? err.message : 'Something went wrong',
+      })
     }
-    onClose()
   }
 
   function submit(mode: 'draft' | 'pending') {
@@ -308,6 +315,11 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
         </div>
 
         {/* Fixed footer */}
+        {errors.root && (
+          <p className="shrink-0 px-6 pt-4 text-sm font-bold text-delete md:px-14">
+            {errors.root.message}
+          </p>
+        )}
         <div className={`shrink-0 flex items-center gap-2 px-6 py-8 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_-8px_24px_rgba(0,0,0,0.3)] md:px-14 ${
           mode === 'create' ? 'justify-between' : 'justify-end'
         }`}>

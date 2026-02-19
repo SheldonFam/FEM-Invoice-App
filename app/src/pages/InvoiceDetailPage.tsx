@@ -1,25 +1,106 @@
-import { Fragment, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Fragment, useState, useEffect } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useInvoiceStore } from '../store/useInvoiceStore'
 import StatusBadge from '../components/StatusBadge'
 import DeleteModal from '../components/DeleteModal'
 import InvoiceForm from '../components/InvoiceForm'
 import { formatDate, formatCurrency } from '../lib/utils'
+import { downloadPdf, viewPdf } from '../lib/api'
+import { api } from '../lib/api'
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { invoices, markAsPaid, deleteInvoice } = useInvoiceStore()
+  const { invoices, isLoading, fetchInvoice, deleteInvoice, markAsPaid, duplicateInvoice } =
+    useInvoiceStore()
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isPdfLoading, setIsPdfLoading] = useState(false)
+  const [isViewingPdf, setIsViewingPdf] = useState(false)
+  const [isDuplicating, setIsDuplicating] = useState(false)
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const invoice = invoices.find(inv => inv.id === id)
-  if (!invoice) return <Navigate to="/" replace />
 
-  function handleDelete() {
-    deleteInvoice(invoice!.id)
+  // Fetch if not in store (e.g. direct navigation)
+  useEffect(() => {
+    if (!invoice && id) fetchInvoice(id)
+  }, [id])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (isLoading && !invoice) {
+    return (
+      <div className="mx-auto max-w-[730px] px-6 py-8 md:py-[72px]">
+        <div className="h-[88px] animate-pulse rounded-md bg-card dark:bg-card-dark" />
+        <div className="mt-6 h-[400px] animate-pulse rounded-md bg-card dark:bg-card-dark" />
+      </div>
+    )
+  }
+
+  if (!invoice) return null
+
+  async function handleDelete() {
+    await deleteInvoice(invoice!.id)
     navigate('/')
+  }
+
+  async function handleMarkAsPaid() {
+    setActionError(null)
+    try {
+      await markAsPaid(invoice!.id)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to mark as paid')
+    }
+  }
+
+  async function handleViewPdf() {
+    setIsViewingPdf(true)
+    setActionError(null)
+    try {
+      await viewPdf(invoice!.id)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to open PDF')
+    } finally {
+      setIsViewingPdf(false)
+    }
+  }
+
+  async function handleDownloadPdf() {
+    setIsPdfLoading(true)
+    setActionError(null)
+    try {
+      await downloadPdf(invoice!.id)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to download PDF')
+    } finally {
+      setIsPdfLoading(false)
+    }
+  }
+
+  async function handleDuplicate() {
+    setIsDuplicating(true)
+    setActionError(null)
+    try {
+      const newInvoice = await duplicateInvoice(invoice!.id)
+      navigate(`/${newInvoice.id}`)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to duplicate invoice')
+    } finally {
+      setIsDuplicating(false)
+    }
+  }
+
+  async function handleSendEmail() {
+    setIsSendingEmail(true)
+    setActionError(null)
+    try {
+      await api.post(`/invoices/${invoice!.id}/send-email`)
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to send email')
+    } finally {
+      setIsSendingEmail(false)
+    }
   }
 
   const actionButtons = (
@@ -36,13 +117,43 @@ export default function InvoiceDetailPage() {
       >
         Delete
       </button>
+      <button
+        onClick={handleViewPdf}
+        disabled={isViewingPdf}
+        className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border disabled:opacity-60 dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
+      >
+        {isViewingPdf ? 'Loading…' : 'View PDF'}
+      </button>
+      <button
+        onClick={handleDownloadPdf}
+        disabled={isPdfLoading}
+        className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border disabled:opacity-60 dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
+      >
+        {isPdfLoading ? 'Downloading…' : 'Download PDF'}
+      </button>
+      <button
+        onClick={handleDuplicate}
+        disabled={isDuplicating}
+        className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border disabled:opacity-60 dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
+      >
+        {isDuplicating ? 'Duplicating…' : 'Duplicate'}
+      </button>
       {invoice.status === 'pending' && (
-        <button
-          onClick={() => markAsPaid(invoice.id)}
-          className="cursor-pointer rounded-full bg-purple px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light"
-        >
-          Mark as Paid
-        </button>
+        <>
+          <button
+            onClick={handleSendEmail}
+            disabled={isSendingEmail}
+            className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border disabled:opacity-60 dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
+          >
+            {isSendingEmail ? 'Sending…' : 'Send Email'}
+          </button>
+          <button
+            onClick={handleMarkAsPaid}
+            className="cursor-pointer rounded-full bg-purple px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light"
+          >
+            Mark as Paid
+          </button>
+        </>
       )}
     </>
   )
@@ -58,6 +169,13 @@ export default function InvoiceDetailPage() {
         Go back
       </Link>
 
+      {/* Action error */}
+      {actionError && (
+        <div className="mt-4 rounded-sm bg-delete/10 px-4 py-3 text-sm font-bold text-delete">
+          {actionError}
+        </div>
+      )}
+
       {/* Action bar */}
       <div className="mt-8 flex items-center justify-between rounded-md bg-card px-8 py-5 shadow-sm dark:bg-card-dark">
         <div className="flex items-center gap-4">
@@ -65,7 +183,7 @@ export default function InvoiceDetailPage() {
           <StatusBadge status={invoice.status} />
         </div>
         {/* Desktop action buttons */}
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden flex-wrap items-center gap-2 md:flex">
           {actionButtons}
         </div>
       </div>
@@ -161,18 +279,40 @@ export default function InvoiceDetailPage() {
             ))}
           </div>
 
-          {/* Amount Due */}
-          <div className="flex items-center justify-between bg-[#1E2139] px-8 py-6">
-            <span className="text-sm text-fog">Amount Due</span>
-            <span className="text-xl font-bold text-white">
-              {formatCurrency(invoice.total)}
-            </span>
+          {/* Totals footer */}
+          <div className="bg-[#1E2139] px-8 py-6">
+            {invoice.taxRate > 0 && (
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm text-fog">
+                  Subtotal
+                </span>
+                <span className="text-sm font-bold text-white">
+                  {formatCurrency(invoice.subtotal)}
+                </span>
+              </div>
+            )}
+            {invoice.taxRate > 0 && (
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm text-fog">
+                  Tax ({invoice.taxRate}%)
+                </span>
+                <span className="text-sm font-bold text-white">
+                  {formatCurrency(invoice.taxAmount)}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-fog">Amount Due</span>
+              <span className="text-xl font-bold text-white">
+                {formatCurrency(invoice.total)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Mobile action footer */}
-      <div className="fixed bottom-0 left-0 right-0 flex items-center justify-end gap-2 bg-card px-6 py-5 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] dark:bg-card-dark md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 flex flex-wrap items-center justify-end gap-2 bg-card px-6 py-5 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] dark:bg-card-dark md:hidden">
         {actionButtons}
       </div>
 

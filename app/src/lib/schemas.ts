@@ -63,7 +63,26 @@ export const pendingSchema = z.object({
   items: z.array(strictItemSchema).min(1, 'an item must be added'),
 })
 
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export const loginSchema = z.object({
+  email: z.string().min(1, "can't be empty").email('must be a valid email'),
+  password: z.string().min(8, 'must be at least 8 characters'),
+})
+
+export const registerSchema = z.object({
+  name: z.string().min(1, "can't be empty"),
+  email: z.string().min(1, "can't be empty").email('must be a valid email'),
+  password: z.string().min(8, 'must be at least 8 characters'),
+  confirmPassword: z.string().min(1, "can't be empty"),
+}).refine(data => data.password === data.confirmPassword, {
+  message: 'passwords do not match',
+  path: ['confirmPassword'],
+})
+
 // ─── Inferred types ───────────────────────────────────────────────────────────
 // Both infer the same TS shape — strictness is runtime only
 
 export type InvoiceFormValues = z.infer<typeof pendingSchema>
+export type LoginFormValues = z.infer<typeof loginSchema>
+export type RegisterFormValues = z.infer<typeof registerSchema>

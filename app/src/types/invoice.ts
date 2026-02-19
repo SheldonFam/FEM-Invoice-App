@@ -17,9 +17,9 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
-  id: string          // 2 uppercase letters + 4 digits e.g. "RT3080"
-  createdAt: string   // ISO date string "YYYY-MM-DD"
-  paymentDue: string  // ISO date string "YYYY-MM-DD" — derived from createdAt + paymentTerms
+  id: string            // e.g. "INV-0001"
+  createdAt: string     // ISO date string "YYYY-MM-DD"
+  paymentDue: string    // ISO date string "YYYY-MM-DD"
   description: string
   paymentTerms: PaymentTerms
   clientName: string
@@ -28,9 +28,13 @@ export interface Invoice {
   senderAddress: Address
   clientAddress: Address
   items: InvoiceItem[]
-  total: number       // derived: sum of item totals
+  subtotal: number      // sum of item totals before tax
+  taxRate: number       // percentage e.g. 10 = 10%
+  taxAmount: number     // derived: subtotal * taxRate / 100
+  total: number         // subtotal + taxAmount
+  isOverdue: boolean    // paymentDue < today && status !== 'paid'
 }
 
-// What RHF manages — excludes derived fields (id, paymentDue, item totals, invoice total)
+// What RHF manages — excludes derived/server fields
 // Source of truth is the Zod schema in src/lib/schemas.ts
 export type { InvoiceFormValues } from '../lib/schemas'
