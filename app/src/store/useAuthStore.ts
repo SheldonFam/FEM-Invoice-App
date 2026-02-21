@@ -1,71 +1,56 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
-import { api, setTokens, clearTokens } from '../lib/api'
-import type { Token } from '../types/invoice'
+import { create } from "zustand";
+import { api, setTokens, clearTokens } from "../lib/api";
+import type { Token } from "../types/invoice";
 
 export interface AuthUser {
-  id: string
-  email: string
-  name: string
-  created_at: string
+  id: string;
+  email: string;
+  name: string;
+  created_at: string;
 }
 
 interface AuthStore {
-  token: string | null
-  refreshToken: string | null
-  user: AuthUser | null
-  login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
-  logout: () => void
+  user: AuthUser | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+}
+
+function loadUser(): AuthUser | null {
+  try {
+    const raw = localStorage.getItem("auth-user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function fetchTokenAndUser(email: string, password: string) {
-  const data = await api.post<Token>(
-    '/auth/login',
-    { email, password }
-  )
-  setTokens(data.access_token, data.refresh_token)
-  const user = await api.get<AuthUser>('/users/me')
-  return { token: data.access_token, refreshToken: data.refresh_token, user }
+  const data = await api.post<Token>("/auth/login", { email, password });
+  setTokens(data.access_token, data.refresh_token);
+  const user = await api.get<AuthUser>("/users/me");
+  return user;
 }
 
-export const useAuthStore = create<AuthStore>()(
-  persist(
-    (set) => ({
-      token: null,
-      refreshToken: null,
-      user: null,
+export const useAuthStore = create<AuthStore>()((set) => ({
+  user: loadUser(),
 
-      login: async (email, password) => {
-        const { token, refreshToken, user } = await fetchTokenAndUser(email, password)
-        set({ token, refreshToken, user })
-      },
+  login: async (email, password) => {
+    const user = await fetchTokenAndUser(email, password);
+    localStorage.setItem("auth-user", JSON.stringify(user));
+    set({ user });
+  },
 
-      register: async (name, email, password) => {
-        // Register returns user object only — no token
-        await api.post('/auth/register', { name, email, password })
-        // Follow up with login to get the token
-        const { token, refreshToken, user } = await fetchTokenAndUser(email, password)
-        set({ token, refreshToken, user })
-      },
+  register: async (name, email, password) => {
+    await api.post("/auth/register", { name, email, password });
+    const user = await fetchTokenAndUser(email, password);
+    localStorage.setItem("auth-user", JSON.stringify(user));
+    set({ user });
+  },
 
-      logout: () => {
-        clearTokens()
-        set({ token: null, refreshToken: null, user: null })
-      },
-    }),
-    {
-      name: 'auth-store',
-      partialize: (state) => ({ token: state.token, refreshToken: state.refreshToken, user: state.user }),
-      onRehydrateStorage: () => (state) => {
-        // Keep localStorage in sync when store rehydrates from sessionStorage
-        if (state?.token) {
-          localStorage.setItem('access_token', state.token)
-        }
-        if (state?.refreshToken) {
-          localStorage.setItem('refresh_token', state.refreshToken)
-        }
-      },
-    }
-  )
-)
+  logout: () => {
+    clearTokens();
+    localStorage.removeItem("auth-user");
+    set({ user: null });
+  },
+}));
