@@ -7,13 +7,13 @@ import InvoiceForm from '../components/InvoiceForm'
 import { useState } from 'react'
 
 export default function InvoiceListPage() {
-  const { invoices, filters, isLoading, fetchInvoices, total, limit, offset, setPage } = useInvoiceStore()
+  const { invoices, isLoading, fetchInvoices, total, limit, offset, setPage } = useInvoiceStore()
   const [isFormOpen, setIsFormOpen] = useState(false)
 
-  // Re-fetch whenever filters change
+  // Initial load
   useEffect(() => {
     fetchInvoices()
-  }, [filters.join(',')])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentPage = Math.floor(offset / limit) + 1
   const totalPages = Math.ceil(total / limit)

@@ -5,8 +5,8 @@ import StatusBadge from '../components/StatusBadge'
 import DeleteModal from '../components/DeleteModal'
 import InvoiceForm from '../components/InvoiceForm'
 import { formatDate, formatCurrency } from '../lib/utils'
-import { downloadPdf, viewPdf } from '../lib/api'
-import { api } from '../lib/api'
+import { downloadPdf, viewPdf, api } from '../lib/api'
+import { useAsyncAction } from '../hooks/useAsyncAction'
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -16,13 +16,38 @@ export default function InvoiceDetailPage() {
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const [isPdfLoading, setIsPdfLoading] = useState(false)
-  const [isViewingPdf, setIsViewingPdf] = useState(false)
-  const [isDuplicating, setIsDuplicating] = useState(false)
-  const [isSendingEmail, setIsSendingEmail] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
   const invoice = invoices.find(inv => inv.id === id)
+
+  const errorHandlers = {
+    onStart: () => setActionError(null),
+    onError: (err: Error) => setActionError(err.message),
+  }
+
+  const [handleViewPdf, isViewingPdf] = useAsyncAction(
+    () => viewPdf(invoice?.id ?? ''),
+    errorHandlers
+  )
+  const [handleDownloadPdf, isPdfLoading] = useAsyncAction(
+    () => downloadPdf(invoice?.id ?? ''),
+    errorHandlers
+  )
+  const [handleDuplicate, isDuplicating] = useAsyncAction(
+    async () => {
+      const inv = await duplicateInvoice(invoice!.id)
+      navigate(`/${inv.id}`)
+    },
+    errorHandlers
+  )
+  const [handleSendEmail, isSendingEmail] = useAsyncAction(
+    () => api.post(`/invoices/${invoice?.id}/send-email`),
+    errorHandlers
+  )
+  const [handleMarkAsPaid] = useAsyncAction(
+    () => markAsPaid(invoice?.id ?? ''),
+    errorHandlers
+  )
 
   // Fetch if not in store (e.g. direct navigation)
   useEffect(() => {
@@ -43,64 +68,6 @@ export default function InvoiceDetailPage() {
   async function handleDelete() {
     await deleteInvoice(invoice!.id)
     navigate('/')
-  }
-
-  async function handleMarkAsPaid() {
-    setActionError(null)
-    try {
-      await markAsPaid(invoice!.id)
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to mark as paid')
-    }
-  }
-
-  async function handleViewPdf() {
-    setIsViewingPdf(true)
-    setActionError(null)
-    try {
-      await viewPdf(invoice!.id)
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to open PDF')
-    } finally {
-      setIsViewingPdf(false)
-    }
-  }
-
-  async function handleDownloadPdf() {
-    setIsPdfLoading(true)
-    setActionError(null)
-    try {
-      await downloadPdf(invoice!.id)
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to download PDF')
-    } finally {
-      setIsPdfLoading(false)
-    }
-  }
-
-  async function handleDuplicate() {
-    setIsDuplicating(true)
-    setActionError(null)
-    try {
-      const newInvoice = await duplicateInvoice(invoice!.id)
-      navigate(`/${newInvoice.id}`)
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to duplicate invoice')
-    } finally {
-      setIsDuplicating(false)
-    }
-  }
-
-  async function handleSendEmail() {
-    setIsSendingEmail(true)
-    setActionError(null)
-    try {
-      await api.post(`/invoices/${invoice!.id}/send-email`)
-    } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to send email')
-    } finally {
-      setIsSendingEmail(false)
-    }
   }
 
   const actionButtons = (

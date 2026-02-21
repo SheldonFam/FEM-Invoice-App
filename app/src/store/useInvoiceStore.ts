@@ -123,6 +123,7 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
         ? state.filters.filter(f => f !== status)
         : [...state.filters, status],
     }))
+    get().fetchInvoices()
   },
 
   setPage: (newOffset) => {
