@@ -7,7 +7,7 @@ import InvoiceForm from '../components/InvoiceForm'
 import { useState } from 'react'
 
 export default function InvoiceListPage() {
-  const { invoices, filters, isLoading, fetchInvoices } = useInvoiceStore()
+  const { invoices, filters, isLoading, fetchInvoices, total, limit, offset, setPage } = useInvoiceStore()
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   // Re-fetch whenever filters change
@@ -15,7 +15,10 @@ export default function InvoiceListPage() {
     fetchInvoices()
   }, [filters.join(',')])  // eslint-disable-line react-hooks/exhaustive-deps
 
-  const count = invoices.length
+  const currentPage = Math.floor(offset / limit) + 1
+  const totalPages = Math.ceil(total / limit)
+  const showingFrom = total === 0 ? 0 : offset + 1
+  const showingTo = Math.min(offset + limit, total)
 
   return (
     <div className="mx-auto max-w-[730px] px-6 py-8 md:py-[72px]">
@@ -25,10 +28,10 @@ export default function InvoiceListPage() {
           <h1 className="text-xl font-bold text-ink dark:text-white md:text-2xl">Invoices</h1>
           <p className="mt-1 text-sm text-muted">
             <span className="hidden md:inline">
-              {count === 0 ? 'No invoices' : `There are ${count} total invoices`}
+              {total === 0 ? 'No invoices' : `There are ${total} total invoices`}
             </span>
             <span className="md:hidden">
-              {count === 0 ? 'No invoices' : `${count} invoices`}
+              {total === 0 ? 'No invoices' : `${total} invoices`}
             </span>
           </p>
         </div>
@@ -68,6 +71,31 @@ export default function InvoiceListPage() {
           invoices.map(inv => <InvoiceCard key={inv.id} invoice={inv} />)
         )}
       </div>
+
+      {/* Pagination */}
+      {!isLoading && total > limit && (
+        <div className="mt-8 flex items-center justify-between">
+          <p className="text-sm text-muted">
+            Showing {showingFrom}–{showingTo} of {total}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPage(offset - limit)}
+              disabled={offset === 0}
+              className="rounded-full bg-card px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-card-dark dark:text-white dark:hover:bg-purple"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage(offset + limit)}
+              disabled={currentPage >= totalPages}
+              className="rounded-full bg-card px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-card-dark dark:text-white dark:hover:bg-purple"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       <InvoiceForm
         mode="create"

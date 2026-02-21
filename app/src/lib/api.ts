@@ -4,7 +4,23 @@ export function getToken(): string | null {
   return localStorage.getItem('access_token')
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export function getRefreshToken(): string | null {
+  return localStorage.getItem('refresh_token')
+}
+
+export function setTokens(accessToken: string, refreshToken: string): void {
+  localStorage.setItem('access_token', accessToken)
+  localStorage.setItem('refresh_token', refreshToken)
+}
+
+export function clearTokens(): void {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+}
+
+let isRefreshing = false
+
+async function request<T>(path: string, options: RequestInit = {}, _retried = false): Promise<T> {
   const token = getToken()
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -14,6 +30,38 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options.headers,
     },
   })
+
+  // Handle 429 rate limiting
+  if (res.status === 429) {
+    throw new Error('Too many attempts, please try again later')
+  }
+
+  // Handle 401 with token refresh
+  if (res.status === 401 && !_retried) {
+    const refreshToken = getRefreshToken()
+    if (refreshToken && !isRefreshing) {
+      isRefreshing = true
+      try {
+        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        })
+        if (refreshRes.ok) {
+          const data = await refreshRes.json()
+          setTokens(data.access_token, data.refresh_token)
+          isRefreshing = false
+          return request<T>(path, options, true)
+        }
+      } catch {
+        // refresh failed — fall through to clear
+      }
+      isRefreshing = false
+      clearTokens()
+      window.location.href = '/login'
+      throw new Error('Session expired')
+    }
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Request failed' }))
