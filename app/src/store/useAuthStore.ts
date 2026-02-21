@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { api, setTokens, clearTokens } from "../lib/api";
+import { api, getToken, setTokens, clearTokens } from "../lib/api";
 import type { Token } from "../types/invoice";
 
 export interface AuthUser {
@@ -18,6 +18,7 @@ interface AuthStore {
 
 function loadUser(): AuthUser | null {
   try {
+    if (!getToken()) return null;
     const raw = localStorage.getItem("auth-user");
     return raw ? JSON.parse(raw) : null;
   } catch {
