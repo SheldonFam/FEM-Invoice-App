@@ -35,6 +35,27 @@ export interface Invoice {
   isOverdue: boolean    // paymentDue < today && status !== 'paid'
 }
 
+// ─── Auth token types ────────────────────────────────────────────────────────
+
+export interface Token {
+  access_token: string
+  refresh_token: string
+  token_type: string
+}
+
+export interface RefreshRequest {
+  refresh_token: string
+}
+
+// ─── Paginated response wrapper ──────────────────────────────────────────────
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  limit: number
+  offset: number
+}
+
 // What RHF manages — excludes derived/server fields
 // Source of truth is the Zod schema in src/lib/schemas.ts
 export type { InvoiceFormValues } from '../lib/schemas'
