@@ -40,6 +40,7 @@ export default function InvoiceListPage() {
           <FilterDropdown />
 
           <button
+            type="button"
             onClick={() => setIsFormOpen(true)}
             className="flex cursor-pointer items-center gap-2 rounded-full bg-purple py-2 pl-2 pr-4 text-white transition-colors hover:bg-purple-light md:gap-4 md:pr-6"
           >
@@ -80,6 +81,7 @@ export default function InvoiceListPage() {
           </p>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={() => setPage(offset - limit)}
               disabled={offset === 0}
               className="rounded-full bg-card px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-card-dark dark:text-white dark:hover:bg-purple"
@@ -87,6 +89,7 @@ export default function InvoiceListPage() {
               Previous
             </button>
             <button
+              type="button"
               onClick={() => setPage(offset + limit)}
               disabled={currentPage >= totalPages}
               className="rounded-full bg-card px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-card-dark dark:text-white dark:hover:bg-purple"

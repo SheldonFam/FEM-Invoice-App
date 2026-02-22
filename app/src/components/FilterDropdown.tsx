@@ -35,6 +35,7 @@ export default function FilterDropdown() {
   return (
     <div ref={ref} className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen(o => !o)}
         aria-expanded={isOpen}
         aria-haspopup="listbox"

@@ -121,12 +121,14 @@ export default function InvoiceDetailPage() {
   const actionButtons = (
     <>
       <button
+        type="button"
         onClick={() => setIsEditOpen(true)}
         className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
       >
         Edit
       </button>
       <button
+        type="button"
         onClick={() => setIsDeleteOpen(true)}
         className="cursor-pointer rounded-full bg-delete px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-delete-hover"
       >
@@ -134,6 +136,7 @@ export default function InvoiceDetailPage() {
       </button>
       {invoice.status === "pending" && (
         <button
+          type="button"
           onClick={handleMarkAsPaid}
           className="cursor-pointer rounded-full bg-purple px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light"
         >

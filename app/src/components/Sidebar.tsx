@@ -30,6 +30,7 @@ export default function Sidebar() {
         md:ml-0 md:mt-auto md:flex-col md:gap-6 md:px-0 md:pb-8">
 
         <button
+          type="button"
           onClick={toggle}
           aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           className="cursor-pointer opacity-60 transition-opacity hover:opacity-100"
@@ -46,6 +47,7 @@ export default function Sidebar() {
         <div className="bg-[#494E6E] h-10 w-px md:h-px md:w-full" />
 
         <button
+          type="button"
           onClick={handleLogout}
           aria-label="Sign out"
           className="cursor-pointer opacity-60 transition-opacity hover:opacity-100"
