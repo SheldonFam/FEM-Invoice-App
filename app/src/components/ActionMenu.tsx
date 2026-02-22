@@ -68,6 +68,7 @@ export default function ActionMenu({ items }: ActionMenuProps) {
   return (
     <div ref={ref} className="relative">
       <button
+        type="button"
         onClick={() => setIsOpen((o) => !o)}
         aria-expanded={isOpen}
         aria-haspopup="menu"
@@ -99,6 +100,7 @@ export default function ActionMenu({ items }: ActionMenuProps) {
         >
           {items.map((item) => (
             <button
+              type="button"
               key={item.label}
               role="menuitem"
               disabled={item.disabled}
