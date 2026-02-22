@@ -26,27 +26,28 @@ export default function InvoiceDetailPage() {
   }
 
   const [handleViewPdf, isViewingPdf] = useAsyncAction(
-    () => viewPdf(invoice?.id ?? ''),
-    errorHandlers
+    async () => { if (invoice) await viewPdf(invoice.id) },
+    { ...errorHandlers, context: 'open PDF' }
   )
   const [handleDownloadPdf, isPdfLoading] = useAsyncAction(
-    () => downloadPdf(invoice?.id ?? ''),
-    errorHandlers
+    async () => { if (invoice) await downloadPdf(invoice.id) },
+    { ...errorHandlers, context: 'download PDF' }
   )
   const [handleDuplicate, isDuplicating] = useAsyncAction(
     async () => {
-      const inv = await duplicateInvoice(invoice!.id)
+      if (!invoice) return
+      const inv = await duplicateInvoice(invoice.id)
       navigate(`/${inv.id}`)
     },
-    errorHandlers
+    { ...errorHandlers, context: 'duplicate invoice' }
   )
   const [handleSendEmail, isSendingEmail] = useAsyncAction(
-    () => api.post(`/invoices/${invoice?.id}/send-email`),
-    errorHandlers
+    async () => { if (invoice) await api.post(`/invoices/${invoice.id}/send-email`) },
+    { ...errorHandlers, context: 'send email' }
   )
   const [handleMarkAsPaid] = useAsyncAction(
-    () => markAsPaid(invoice?.id ?? ''),
-    errorHandlers
+    async () => { if (invoice) await markAsPaid(invoice.id) },
+    { ...errorHandlers, context: 'mark as paid' }
   )
 
   // Fetch if not in store (e.g. direct navigation)

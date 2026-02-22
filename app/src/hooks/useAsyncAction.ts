@@ -1,26 +1,43 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from "react";
 
 export function useAsyncAction(
   action: () => Promise<unknown>,
-  options?: { onError?: (err: Error) => void; onStart?: () => void }
+  options?: {
+    onError?: (err: Error) => void;
+    onStart?: () => void;
+    context?: string;
+  },
 ): [() => Promise<void>, boolean] {
-  const [isLoading, setIsLoading] = useState(false)
-  const actionRef = useRef(action)
-  actionRef.current = action
-  const optionsRef = useRef(options)
-  optionsRef.current = options
+  const [isLoading, setIsLoading] = useState(false);
+  const actionRef = useRef(action);
+  actionRef.current = action;
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const wrapped = useState(() => async () => {
-    setIsLoading(true)
-    optionsRef.current?.onStart?.()
+    setIsLoading(true);
+    optionsRef.current?.onStart?.();
     try {
-      await actionRef.current()
+      await actionRef.current();
     } catch (err) {
-      optionsRef.current?.onError?.(err instanceof Error ? err : new Error(String(err)))
+      if (!mountedRef.current) return;
+      const message = err instanceof Error ? err.message : String(err);
+      const ctx = optionsRef.current?.context;
+      optionsRef.current?.onError?.(
+        new Error(ctx ? `Failed to ${ctx}: ${message}` : message),
+      );
     } finally {
-      setIsLoading(false)
+      if (mountedRef.current) setIsLoading(false);
     }
-  })[0]
+  })[0];
 
-  return [wrapped, isLoading]
+  return [wrapped, isLoading];
 }
