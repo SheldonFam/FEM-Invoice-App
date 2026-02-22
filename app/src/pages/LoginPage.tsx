@@ -34,7 +34,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-surface px-6 dark:bg-surface-dark">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-surface px-6 dark:bg-surface-dark">
       {/* Logo */}
       <div className="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple">
         <img src="/assets/logo.svg" alt="Invoice App" width={28} height={26} />
@@ -91,6 +91,6 @@ export default function LoginPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   )
 }
