@@ -1,59 +1,75 @@
-import { Fragment, useState, useEffect } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useInvoiceStore } from '../store/useInvoiceStore'
-import StatusBadge from '../components/StatusBadge'
-import DeleteModal from '../components/DeleteModal'
-import InvoiceForm from '../components/InvoiceForm'
-import { formatDate, formatCurrency } from '../lib/utils'
-import { downloadPdf, viewPdf, api } from '../lib/api'
-import { useAsyncAction } from '../hooks/useAsyncAction'
+import { Fragment, useState, useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useInvoiceStore } from "../store/useInvoiceStore";
+import StatusBadge from "../components/StatusBadge";
+import DeleteModal from "../components/DeleteModal";
+import InvoiceForm from "../components/InvoiceForm";
+import ActionMenu from "../components/ActionMenu";
+import type { MenuItem } from "../components/ActionMenu";
+import { formatDate, formatCurrency } from "../lib/utils";
+import { downloadPdf, viewPdf, api } from "../lib/api";
+import { useAsyncAction } from "../hooks/useAsyncAction";
 
 export default function InvoiceDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const { invoices, isLoading, fetchInvoice, deleteInvoice, markAsPaid, duplicateInvoice } =
-    useInvoiceStore()
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const {
+    invoices,
+    isLoading,
+    fetchInvoice,
+    deleteInvoice,
+    markAsPaid,
+    duplicateInvoice,
+  } = useInvoiceStore();
 
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
-  const [isEditOpen, setIsEditOpen] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  const invoice = invoices.find(inv => inv.id === id)
+  const invoice = invoices.find((inv) => inv.id === id);
 
   const errorHandlers = {
     onStart: () => setActionError(null),
     onError: (err: Error) => setActionError(err.message),
-  }
+  };
 
   const [handleViewPdf, isViewingPdf] = useAsyncAction(
-    async () => { if (invoice) await viewPdf(invoice.id) },
-    { ...errorHandlers, context: 'open PDF' }
-  )
+    async () => {
+      if (invoice) await viewPdf(invoice.id);
+    },
+    { ...errorHandlers, context: "open PDF" },
+  );
   const [handleDownloadPdf, isPdfLoading] = useAsyncAction(
-    async () => { if (invoice) await downloadPdf(invoice.id) },
-    { ...errorHandlers, context: 'download PDF' }
-  )
+    async () => {
+      if (invoice) await downloadPdf(invoice.id);
+    },
+    { ...errorHandlers, context: "download PDF" },
+  );
   const [handleDuplicate, isDuplicating] = useAsyncAction(
     async () => {
-      if (!invoice) return
-      const inv = await duplicateInvoice(invoice.id)
-      navigate(`/${inv.id}`)
+      if (!invoice) return;
+      const inv = await duplicateInvoice(invoice.id);
+      navigate(`/${inv.id}`);
     },
-    { ...errorHandlers, context: 'duplicate invoice' }
-  )
+    { ...errorHandlers, context: "duplicate invoice" },
+  );
   const [handleSendEmail, isSendingEmail] = useAsyncAction(
-    async () => { if (invoice) await api.post(`/invoices/${invoice.id}/send-email`) },
-    { ...errorHandlers, context: 'send email' }
-  )
+    async () => {
+      if (invoice) await api.post(`/invoices/${invoice.id}/send-email`);
+    },
+    { ...errorHandlers, context: "send email" },
+  );
   const [handleMarkAsPaid] = useAsyncAction(
-    async () => { if (invoice) await markAsPaid(invoice.id) },
-    { ...errorHandlers, context: 'mark as paid' }
-  )
+    async () => {
+      if (invoice) await markAsPaid(invoice.id);
+    },
+    { ...errorHandlers, context: "mark as paid" },
+  );
 
   // Fetch if not in store (e.g. direct navigation)
   useEffect(() => {
-    if (!invoice && id) fetchInvoice(id)
-  }, [id])  // eslint-disable-line react-hooks/exhaustive-deps
+    if (!invoice && id) fetchInvoice(id);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading && !invoice) {
     return (
@@ -61,15 +77,46 @@ export default function InvoiceDetailPage() {
         <div className="h-[88px] animate-pulse rounded-md bg-card dark:bg-card-dark" />
         <div className="mt-6 h-[400px] animate-pulse rounded-md bg-card dark:bg-card-dark" />
       </div>
-    )
+    );
   }
 
-  if (!invoice) return null
+  if (!invoice) return null;
 
   async function handleDelete() {
-    await deleteInvoice(invoice!.id)
-    navigate('/')
+    await deleteInvoice(invoice!.id);
+    navigate("/");
   }
+
+  const moreMenuItems: MenuItem[] = [
+    {
+      label: "View PDF",
+      onClick: handleViewPdf,
+      disabled: isViewingPdf,
+      loadingLabel: "Loading…",
+    },
+    {
+      label: "Download PDF",
+      onClick: handleDownloadPdf,
+      disabled: isPdfLoading,
+      loadingLabel: "Downloading…",
+    },
+    {
+      label: "Duplicate",
+      onClick: handleDuplicate,
+      disabled: isDuplicating,
+      loadingLabel: "Duplicating…",
+    },
+    ...(invoice.status === "pending"
+      ? [
+          {
+            label: "Send Email",
+            onClick: handleSendEmail,
+            disabled: isSendingEmail,
+            loadingLabel: "Sending…",
+          },
+        ]
+      : []),
+  ];
 
   const actionButtons = (
     <>
@@ -85,46 +132,17 @@ export default function InvoiceDetailPage() {
       >
         Delete
       </button>
-      <button
-        onClick={handleViewPdf}
-        disabled={isViewingPdf}
-        className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border disabled:opacity-60 dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
-      >
-        {isViewingPdf ? 'Loading…' : 'View PDF'}
-      </button>
-      <button
-        onClick={handleDownloadPdf}
-        disabled={isPdfLoading}
-        className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border disabled:opacity-60 dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
-      >
-        {isPdfLoading ? 'Downloading…' : 'Download PDF'}
-      </button>
-      <button
-        onClick={handleDuplicate}
-        disabled={isDuplicating}
-        className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border disabled:opacity-60 dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
-      >
-        {isDuplicating ? 'Duplicating…' : 'Duplicate'}
-      </button>
-      {invoice.status === 'pending' && (
-        <>
-          <button
-            onClick={handleSendEmail}
-            disabled={isSendingEmail}
-            className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border disabled:opacity-60 dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
-          >
-            {isSendingEmail ? 'Sending…' : 'Send Email'}
-          </button>
-          <button
-            onClick={handleMarkAsPaid}
-            className="cursor-pointer rounded-full bg-purple px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light"
-          >
-            Mark as Paid
-          </button>
-        </>
+      {invoice.status === "pending" && (
+        <button
+          onClick={handleMarkAsPaid}
+          className="cursor-pointer rounded-full bg-purple px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light"
+        >
+          Mark as Paid
+        </button>
       )}
+      <ActionMenu items={moreMenuItems} />
     </>
-  )
+  );
 
   return (
     <div className="mx-auto max-w-[730px] px-6 py-8 pb-28 md:py-[72px] md:pb-[72px]">
@@ -162,7 +180,8 @@ export default function InvoiceDetailPage() {
         <div className="flex items-start justify-between">
           <div>
             <p className="font-bold text-ink dark:text-white">
-              <span className="text-label">#</span>{invoice.id}
+              <span className="text-label">#</span>
+              {invoice.id}
             </p>
             <p className="mt-2 text-sm text-label">{invoice.description}</p>
           </div>
@@ -210,7 +229,7 @@ export default function InvoiceDetailPage() {
           <div>
             <p className="text-sm text-label">Sent to</p>
             <p className="mt-3 font-bold text-ink dark:text-white">
-              {invoice.clientEmail || '—'}
+              {invoice.clientEmail || "—"}
             </p>
           </div>
         </div>
@@ -251,9 +270,7 @@ export default function InvoiceDetailPage() {
           <div className="bg-[#1E2139] px-8 py-6">
             {invoice.taxRate > 0 && (
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm text-fog">
-                  Subtotal
-                </span>
+                <span className="text-sm text-fog">Subtotal</span>
                 <span className="text-sm font-bold text-white">
                   {formatCurrency(invoice.subtotal)}
                 </span>
@@ -300,5 +317,5 @@ export default function InvoiceDetailPage() {
         invoice={invoice}
       />
     </div>
-  )
+  );
 }
