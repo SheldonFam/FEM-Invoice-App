@@ -63,7 +63,7 @@ export default function CustomSelect({ value, onChange, options, hasError, id: e
         aria-controls={listboxId}
         onClick={() => setIsOpen(o => !o)}
         onKeyDown={handleKeyDown}
-        className={`flex w-full cursor-pointer items-center justify-between rounded-sm border bg-transparent px-5 py-4 text-left text-sm font-bold text-ink outline-none transition-colors focus:border-purple dark:text-white ${
+        className={`flex w-full cursor-pointer items-center justify-between rounded-sm border bg-transparent px-5 py-4 text-left text-sm font-bold text-ink outline-none transition-colors focus-visible:border-purple focus-visible:ring-2 focus-visible:ring-purple/25 dark:text-white ${
           hasError
             ? 'border-delete'
             : 'border-border hover:border-purple dark:border-border-dark'

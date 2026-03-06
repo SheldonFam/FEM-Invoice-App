@@ -9,6 +9,7 @@ import type { MenuItem } from "../components/ActionMenu";
 import { formatDate, formatCurrency } from "../lib/utils";
 import { downloadPdf, viewPdf, api } from "../lib/api";
 import { useAsyncAction } from "../hooks/useAsyncAction";
+import ErrorBanner from "../components/ErrorBanner";
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -83,7 +84,8 @@ export default function InvoiceDetailPage() {
   if (!invoice) return null;
 
   async function handleDelete() {
-    await deleteInvoice(invoice!.id);
+    if (!invoice) return;
+    await deleteInvoice(invoice.id);
     navigate("/");
   }
 
@@ -148,7 +150,7 @@ export default function InvoiceDetailPage() {
   );
 
   return (
-    <div className="mx-auto max-w-[730px] px-6 py-8 pb-28 md:py-[72px] md:pb-[72px]">
+    <div id="main-content" className="mx-auto max-w-[730px] px-6 py-8 pb-28 md:py-[72px] md:pb-[72px]">
       {/* Go back */}
       <Link
         to="/"
@@ -158,10 +160,12 @@ export default function InvoiceDetailPage() {
         Go back
       </Link>
 
+      <h1 className="sr-only">Invoice #{invoice.id}</h1>
+
       {/* Action error */}
       {actionError && (
-        <div className="mt-4 rounded-sm bg-delete/10 px-4 py-3 text-sm font-bold text-delete">
-          {actionError}
+        <div className="mt-4">
+          <ErrorBanner message={actionError} />
         </div>
       )}
 
@@ -270,7 +274,7 @@ export default function InvoiceDetailPage() {
           </div>
 
           {/* Totals footer */}
-          <div className="bg-[#1E2139] px-8 py-6">
+          <div className="bg-sidebar px-8 py-6">
             {invoice.taxRate > 0 && (
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-sm text-fog">Subtotal</span>

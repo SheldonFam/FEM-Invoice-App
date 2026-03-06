@@ -84,4 +84,30 @@
     background-color: var(--color-surface-dark);
     color: var(--color-fog);
   }
+
+  /* Accessible focus ring for all interactive elements */
+  :focus-visible {
+    outline: 2px solid var(--color-purple);
+    outline-offset: 2px;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  /* Inputs already have a border-based indicator, suppress the outline there */
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

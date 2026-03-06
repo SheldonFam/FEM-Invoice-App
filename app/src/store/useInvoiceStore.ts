@@ -32,6 +32,8 @@ interface InvoiceStore {
   setPage: (newOffset: number) => void
 }
 
+let fetchController: AbortController | null = null
+
 export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
   invoices: [],
   filters: [],
@@ -42,6 +44,11 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
   offset: 0,
 
   fetchInvoices: async () => {
+    // Cancel any in-flight fetch to avoid stale responses from rapid filter/page changes
+    fetchController?.abort()
+    fetchController = new AbortController()
+    const { signal } = fetchController
+
     set({ isLoading: true, error: null })
     try {
       const { filters, limit, offset } = get()
@@ -50,7 +57,8 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
       params.set('limit', String(limit))
       params.set('offset', String(offset))
       const query = `?${params.toString()}`
-      const data = await api.get<PaginatedResponse<ApiInvoice>>(`/invoices${query}`)
+      const data = await api.get<PaginatedResponse<ApiInvoice>>(`/invoices${query}`, signal)
+      if (signal.aborted) return
       set({
         invoices: data.items.map(fromApiInvoice),
         total: data.total,
@@ -59,6 +67,7 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
         isLoading: false,
       })
     } catch (err) {
+      if (signal.aborted) return
       set({ error: err instanceof Error ? err.message : 'Failed to load invoices', isLoading: false })
     }
   },

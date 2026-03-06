@@ -1,12 +1,13 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import ProtectedRoute from './components/ProtectedRoute'
-import InvoiceListPage from './pages/InvoiceListPage'
-import InvoiceDetailPage from './pages/InvoiceDetailPage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
 import { useThemeStore } from './store/useThemeStore'
+
+const InvoiceListPage = lazy(() => import('./pages/InvoiceListPage'))
+const InvoiceDetailPage = lazy(() => import('./pages/InvoiceDetailPage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 
 export default function App() {
   const isDark = useThemeStore(state => state.isDark)
@@ -17,6 +18,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-muted">Loading…</div>}>
       <Routes>
         {/* Public routes — no sidebar */}
         <Route path="/login" element={<LoginPage />} />
@@ -37,6 +39,7 @@ export default function App() {
           <Route path="/:id" element={<InvoiceDetailPage />} />
         </Route>
       </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }

@@ -111,6 +111,7 @@ export function toApiCreateBody(
 // ── Frontend form values → API update body ─────────────────────────────────────
 
 export function toApiUpdateBody(values: InvoiceFormValues) {
-  const { ...rest } = toApiCreateBody(values, "pending");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { submit_mode, ...rest } = toApiCreateBody(values, "pending");
   return rest;
 }

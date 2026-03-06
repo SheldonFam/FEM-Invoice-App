@@ -8,6 +8,10 @@ interface Props {
 
 export default function DeleteModal({ invoiceId, onConfirm, onCancel }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const onCancelRef = useRef(onCancel)
+  useEffect(() => {
+    onCancelRef.current = onCancel
+  })
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -15,10 +19,10 @@ export default function DeleteModal({ invoiceId, onConfirm, onCancel }: Props) {
 
     dialog.showModal()
 
-    const handleClose = () => onCancel()
+    const handleClose = () => onCancelRef.current()
     dialog.addEventListener('close', handleClose)
     return () => dialog.removeEventListener('close', handleClose)
-  }, [onCancel])
+  }, [])
 
   return (
     <dialog

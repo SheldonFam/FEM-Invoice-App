@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { formatDate } from '../lib/utils'
 
 interface Props {
   value: string // YYYY-MM-DD
@@ -7,16 +8,10 @@ interface Props {
   id?: string
 }
 
-const MONTH_NAMES = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-]
-
-function formatDisplay(dateStr: string) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr + 'T00:00:00')
-  return `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`
-}
+const monthFormatter = new Intl.DateTimeFormat('en-GB', { month: 'short' })
+const SHORT_MONTHS = Array.from({ length: 12 }, (_, i) => monthFormatter.format(new Date(2000, i)))
+const longFormatter = new Intl.DateTimeFormat('en-GB', { month: 'long' })
+const LONG_MONTHS = Array.from({ length: 12 }, (_, i) => longFormatter.format(new Date(2000, i)))
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate()
@@ -129,14 +124,14 @@ export default function DatePicker({ value, onChange, hasError, id }: Props) {
         type="button"
         id={id}
         onClick={toggleOpen}
-        aria-label={value ? `Selected date: ${formatDisplay(value)}. Click to change` : 'Choose a date'}
-        className={`flex w-full cursor-pointer items-center justify-between rounded-sm border bg-transparent px-5 py-4 text-left text-sm font-bold text-ink outline-none transition-colors focus:border-purple dark:text-white ${
+        aria-label={value ? `Selected date: ${formatDate(value)}. Click to change` : 'Choose a date'}
+        className={`flex w-full cursor-pointer items-center justify-between rounded-sm border bg-transparent px-5 py-4 text-left text-sm font-bold text-ink outline-none transition-colors focus-visible:border-purple focus-visible:ring-2 focus-visible:ring-purple/25 dark:text-white ${
           hasError
             ? 'border-delete'
             : 'border-border hover:border-purple dark:border-border-dark'
         }`}
       >
-        {value ? formatDisplay(value) : 'Select date'}
+        {value ? formatDate(value) : 'Select date'}
         <img src="/assets/icon-calendar.svg" alt="" width={16} height={16} aria-hidden="true" />
       </button>
 
@@ -157,7 +152,7 @@ export default function DatePicker({ value, onChange, hasError, id }: Props) {
               <img src="/assets/icon-arrow-left.svg" alt="" width={7} height={10} />
             </button>
             <span className="text-sm font-bold text-ink dark:text-white">
-              {MONTH_NAMES[viewMonth]} {viewYear}
+              {SHORT_MONTHS[viewMonth]} {viewYear}
             </span>
             <button
               type="button"
@@ -182,6 +177,8 @@ export default function DatePicker({ value, onChange, hasError, id }: Props) {
                 key={day}
                 type="button"
                 onClick={() => selectDay(day)}
+                aria-label={`${day} ${LONG_MONTHS[viewMonth]} ${viewYear}`}
+                aria-pressed={isSelectedDay(day)}
                 className={`cursor-pointer text-sm font-bold transition-colors ${
                   isSelectedDay(day)
                     ? 'text-purple'

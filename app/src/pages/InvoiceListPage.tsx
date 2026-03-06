@@ -10,7 +10,7 @@ export default function InvoiceListPage() {
   const { invoices, isLoading, fetchInvoices, total, limit, offset, setPage } = useInvoiceStore()
   const [isFormOpen, setIsFormOpen] = useState(false)
 
-  // Initial load
+  // Initial load — fetchInvoices is a stable Zustand action, safe to omit from deps
   useEffect(() => {
     fetchInvoices()
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
@@ -21,7 +21,7 @@ export default function InvoiceListPage() {
   const showingTo = Math.min(offset + limit, total)
 
   return (
-    <div className="mx-auto max-w-[730px] px-6 py-8 md:py-[72px]">
+    <div id="main-content" className="mx-auto max-w-[730px] px-6 py-8 md:py-[72px]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

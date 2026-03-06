@@ -30,6 +30,7 @@ async function fetchTokenAndUser(email: string, password: string) {
   const data = await api.post<Token>("/auth/login", { email, password });
   setTokens(data.access_token, data.refresh_token);
   const user = await api.get<AuthUser>("/users/me");
+  localStorage.setItem("auth-user", JSON.stringify(user));
   return user;
 }
 
@@ -38,14 +39,12 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 
   login: async (email, password) => {
     const user = await fetchTokenAndUser(email, password);
-    localStorage.setItem("auth-user", JSON.stringify(user));
     set({ user });
   },
 
   register: async (name, email, password) => {
     await api.post("/auth/register", { name, email, password });
     const user = await fetchTokenAndUser(email, password);
-    localStorage.setItem("auth-user", JSON.stringify(user));
     set({ user });
   },
 

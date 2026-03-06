@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema, type RegisterFormValues } from '../lib/schemas'
 import { useAuthStore } from '../store/useAuthStore'
 import FormField from '../components/FormField'
+import ErrorBanner from '../components/ErrorBanner'
+import { inputCx } from '../lib/ui'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -14,14 +16,6 @@ export default function RegisterPage() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
   })
-
-  function inputCx(hasError?: boolean) {
-    return `w-full rounded-sm border bg-transparent px-5 py-4 text-sm font-bold text-ink outline-none transition-colors focus:border-purple dark:text-white ${
-      hasError
-        ? 'border-delete'
-        : 'border-border hover:border-purple dark:border-border-dark'
-    }`
-  }
 
   async function onSubmit(values: RegisterFormValues) {
     setServerError(null)
@@ -86,11 +80,7 @@ export default function RegisterPage() {
             />
           </FormField>
 
-          {serverError && (
-            <p className="rounded-sm bg-delete/10 px-4 py-3 text-sm font-bold text-delete">
-              {serverError}
-            </p>
-          )}
+          {serverError && <ErrorBanner message={serverError} />}
 
           <button
             type="submit"

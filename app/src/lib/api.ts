@@ -18,7 +18,23 @@ export function clearTokens(): void {
   localStorage.removeItem('refresh_token')
 }
 
-let isRefreshing = false
+let refreshPromise: Promise<void> | null = null
+
+async function doRefresh(): Promise<void> {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) throw new Error('No refresh token')
+
+  const res = await fetch(`${BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  })
+
+  if (!res.ok) throw new Error('Refresh failed')
+
+  const data = await res.json()
+  setTokens(data.access_token, data.refresh_token)
+}
 
 async function request<T>(path: string, options: RequestInit = {}, _retried = false): Promise<T> {
   const token = getToken()
@@ -36,27 +52,18 @@ async function request<T>(path: string, options: RequestInit = {}, _retried = fa
     throw new Error('Too many attempts, please try again later')
   }
 
-  // Handle 401 with token refresh
-  if (res.status === 401 && !_retried) {
-    const refreshToken = getRefreshToken()
-    if (refreshToken && !isRefreshing) {
-      isRefreshing = true
-      try {
-        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        })
-        if (refreshRes.ok) {
-          const data = await refreshRes.json()
-          setTokens(data.access_token, data.refresh_token)
-          isRefreshing = false
-          return request<T>(path, options, true)
-        }
-      } catch {
-        // refresh failed — fall through to clear
-      }
-      isRefreshing = false
+  // Handle 401 with token refresh — concurrent requests share the same refresh promise
+  // Skip refresh for auth endpoints (login/register return 401 for bad credentials)
+  const isAuthRoute = path.startsWith('/auth/')
+  if (res.status === 401 && !_retried && !isAuthRoute) {
+    if (!refreshPromise) {
+      refreshPromise = doRefresh().finally(() => { refreshPromise = null })
+    }
+
+    try {
+      await refreshPromise
+      return request<T>(path, options, true)
+    } catch {
       clearTokens()
       window.location.href = '/login'
       throw new Error('Session expired')
@@ -73,8 +80,8 @@ async function request<T>(path: string, options: RequestInit = {}, _retried = fa
 }
 
 export const api = {
-  get: <T>(path: string) =>
-    request<T>(path),
+  get: <T>(path: string, signal?: AbortSignal) =>
+    request<T>(path, signal ? { signal } : {}),
 
   post: <T>(path: string, body?: unknown) =>
     request<T>(path, {
@@ -104,13 +111,30 @@ async function fetchPdfBlob(id: string): Promise<Blob> {
   return res.blob()
 }
 
+let previousBlobUrl: string | null = null
+
 /** Opens the invoice PDF in a new browser tab */
 export async function viewPdf(id: string): Promise<void> {
+  // Revoke any previously held blob URL to avoid accumulating memory
+  if (previousBlobUrl) {
+    URL.revokeObjectURL(previousBlobUrl)
+    previousBlobUrl = null
+  }
+
   const blob = await fetchPdfBlob(id)
   const url = URL.createObjectURL(blob)
   const tab = window.open(url, '_blank')
-  // Revoke after the tab has had time to load
-  if (tab) tab.addEventListener('load', () => URL.revokeObjectURL(url), { once: true })
+  if (!tab) {
+    // Popup was blocked — clean up immediately and fall back to download
+    URL.revokeObjectURL(url)
+    return downloadPdf(id)
+  }
+  previousBlobUrl = url
+  // Revoke after a timeout — the load event on new tabs is unreliable for blob URLs
+  setTimeout(() => {
+    if (previousBlobUrl === url) previousBlobUrl = null
+    URL.revokeObjectURL(url)
+  }, 60_000)
 }
 
 /** Streams the PDF and triggers a browser download */
