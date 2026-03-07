@@ -5,23 +5,19 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { loginSchema, type LoginFormValues } from '../lib/schemas'
 import { useAuthStore } from '../store/useAuthStore'
 import FormField from '../components/FormField'
+import ErrorBanner from '../components/ErrorBanner'
+import { inputCx, btnCx, getErrorMessage } from '../lib/ui'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const login = useAuthStore(state => state.login)
   const [serverError, setServerError] = useState<string | null>(null)
+  useDocumentTitle('Sign in')
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   })
-
-  function inputCx(hasError?: boolean) {
-    return `w-full rounded-sm border bg-transparent px-5 py-4 text-sm font-bold text-ink outline-none transition-colors focus:border-purple dark:text-white ${
-      hasError
-        ? 'border-delete'
-        : 'border-border hover:border-purple dark:border-border-dark'
-    }`
-  }
 
   async function onSubmit(values: LoginFormValues) {
     setServerError(null)
@@ -29,7 +25,7 @@ export default function LoginPage() {
       await login(values.email, values.password)
       navigate('/')
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : 'Something went wrong')
+      setServerError(getErrorMessage(err))
     }
   }
 
@@ -51,6 +47,7 @@ export default function LoginPage() {
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
+              aria-required="true"
               {...register('email')}
               className={inputCx(!!errors.email)}
             />
@@ -61,21 +58,18 @@ export default function LoginPage() {
               type="password"
               placeholder="••••••••"
               autoComplete="current-password"
+              aria-required="true"
               {...register('password')}
               className={inputCx(!!errors.password)}
             />
           </FormField>
 
-          {serverError && (
-            <p className="rounded-sm bg-delete/10 px-4 py-3 text-sm font-bold text-delete">
-              {serverError}
-            </p>
-          )}
+          {serverError && <ErrorBanner message={serverError} />}
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full cursor-pointer rounded-full bg-purple py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light disabled:opacity-60"
+            className={`w-full ${btnCx.primary} disabled:opacity-60`}
           >
             {isSubmitting ? 'Signing in…' : 'Sign in'}
           </button>

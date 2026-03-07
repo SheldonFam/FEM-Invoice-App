@@ -7,7 +7,6 @@ interface InvoiceStore {
   invoices: Invoice[]
   filters: InvoiceStatus[]
   isLoading: boolean
-  error: string | null
 
   // Pagination
   total: number
@@ -26,23 +25,30 @@ interface InvoiceStore {
   // Status actions
   markAsPaid: (id: string) => Promise<void>
   duplicateInvoice: (id: string) => Promise<Invoice>
+  sendEmail: (id: string) => Promise<void>
 
   // UI state
-  toggleFilter: (status: InvoiceStatus) => void
-  setPage: (newOffset: number) => void
+  toggleFilter: (status: InvoiceStatus) => Promise<void>
+  setPage: (newOffset: number) => Promise<void>
 }
+
+let fetchController: AbortController | null = null
 
 export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
   invoices: [],
   filters: [],
   isLoading: false,
-  error: null,
   total: 0,
   limit: 20,
   offset: 0,
 
   fetchInvoices: async () => {
-    set({ isLoading: true, error: null })
+    // Cancel any in-flight fetch to avoid stale responses from rapid filter/page changes
+    fetchController?.abort()
+    fetchController = new AbortController()
+    const { signal } = fetchController
+
+    set({ isLoading: true })
     try {
       const { filters, limit, offset } = get()
       const params = new URLSearchParams()
@@ -50,7 +56,8 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
       params.set('limit', String(limit))
       params.set('offset', String(offset))
       const query = `?${params.toString()}`
-      const data = await api.get<PaginatedResponse<ApiInvoice>>(`/invoices${query}`)
+      const data = await api.get<PaginatedResponse<ApiInvoice>>(`/invoices${query}`, signal)
+      if (signal.aborted) return
       set({
         invoices: data.items.map(fromApiInvoice),
         total: data.total,
@@ -59,24 +66,26 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
         isLoading: false,
       })
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : 'Failed to load invoices', isLoading: false })
+      if (signal.aborted) return
+      set({ isLoading: false })
+      throw err
     }
   },
 
   fetchInvoice: async (id) => {
-    set({ isLoading: true, error: null })
+    set({ isLoading: true })
     try {
       const data = await api.get<ApiInvoice>(`/invoices/${id}`)
       const invoice = fromApiInvoice(data)
       set(state => ({
         isLoading: false,
-        // Upsert into the invoices array
         invoices: state.invoices.some(inv => inv.id === id)
           ? state.invoices.map(inv => inv.id === id ? invoice : inv)
           : [invoice, ...state.invoices],
       }))
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : 'Invoice not found', isLoading: false })
+      set({ isLoading: false })
+      throw err
     }
   },
 
@@ -116,6 +125,10 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
     return invoice
   },
 
+  sendEmail: async (id) => {
+    await api.post(`/invoices/${id}/send-email`)
+  },
+
   toggleFilter: (status) => {
     set(state => ({
       offset: 0,
@@ -123,11 +136,11 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
         ? state.filters.filter(f => f !== status)
         : [...state.filters, status],
     }))
-    get().fetchInvoices()
+    return get().fetchInvoices()
   },
 
   setPage: (newOffset) => {
     set({ offset: newOffset })
-    get().fetchInvoices()
+    return get().fetchInvoices()
   },
 }))

@@ -27,9 +27,9 @@ export default function FormField({ label, error, htmlFor, children }: Props) {
           </span>
         )}
       </div>
-      {!htmlFor && isValidElement(children)
+      {isValidElement(children)
         ? cloneElement(children, {
-            id,
+            ...(!htmlFor ? { id } : {}),
             'aria-invalid': error ? true : undefined,
             'aria-describedby': error ? errorId : undefined,
           } as React.HTMLAttributes<HTMLElement>)

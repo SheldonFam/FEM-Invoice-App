@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { api, getToken, setTokens, clearTokens } from "../lib/api";
+import { api, getToken, setTokens, clearTokens, STORAGE_KEYS } from "../lib/api";
 import type { Token } from "../types/invoice";
 
 export interface AuthUser {
@@ -19,7 +19,7 @@ interface AuthStore {
 function loadUser(): AuthUser | null {
   try {
     if (!getToken()) return null;
-    const raw = localStorage.getItem("auth-user");
+    const raw = localStorage.getItem(STORAGE_KEYS.AUTH_USER);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -30,6 +30,7 @@ async function fetchTokenAndUser(email: string, password: string) {
   const data = await api.post<Token>("/auth/login", { email, password });
   setTokens(data.access_token, data.refresh_token);
   const user = await api.get<AuthUser>("/users/me");
+  localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
   return user;
 }
 
@@ -38,20 +39,18 @@ export const useAuthStore = create<AuthStore>()((set) => ({
 
   login: async (email, password) => {
     const user = await fetchTokenAndUser(email, password);
-    localStorage.setItem("auth-user", JSON.stringify(user));
     set({ user });
   },
 
   register: async (name, email, password) => {
     await api.post("/auth/register", { name, email, password });
     const user = await fetchTokenAndUser(email, password);
-    localStorage.setItem("auth-user", JSON.stringify(user));
     set({ user });
   },
 
   logout: () => {
     clearTokens();
-    localStorage.removeItem("auth-user");
+    localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
     set({ user: null });
   },
 }));

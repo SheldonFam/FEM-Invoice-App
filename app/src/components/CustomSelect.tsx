@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useId, useRef, useState } from 'react'
+import { useClickOutside } from '../hooks/useClickOutside'
+import { inputCx } from '../lib/ui'
 
 interface Option {
   value: number
@@ -22,22 +24,20 @@ export default function CustomSelect({ value, onChange, options, hasError, id: e
 
   const selected = options.find(o => o.value === value)
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+  const close = useCallback(() => setIsOpen(false), [])
+  useClickOutside(ref, close)
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
       setIsOpen(false)
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      setIsOpen(o => !o)
+      if (isOpen) {
+        // Commit the current selection and close
+        setIsOpen(false)
+      } else {
+        setIsOpen(true)
+      }
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       if (!isOpen) {
@@ -53,7 +53,14 @@ export default function CustomSelect({ value, onChange, options, hasError, id: e
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div
+      ref={ref}
+      className="relative"
+      onBlur={(e) => {
+        // Close when focus leaves the entire component (trigger + listbox)
+        if (!ref.current?.contains(e.relatedTarget as Node)) setIsOpen(false)
+      }}
+    >
       <button
         type="button"
         id={id}
@@ -63,11 +70,7 @@ export default function CustomSelect({ value, onChange, options, hasError, id: e
         aria-controls={listboxId}
         onClick={() => setIsOpen(o => !o)}
         onKeyDown={handleKeyDown}
-        className={`flex w-full cursor-pointer items-center justify-between rounded-sm border bg-transparent px-5 py-4 text-left text-sm font-bold text-ink outline-none transition-colors focus:border-purple dark:text-white ${
-          hasError
-            ? 'border-delete'
-            : 'border-border hover:border-purple dark:border-border-dark'
-        }`}
+        className={`flex cursor-pointer items-center justify-between text-left ${inputCx(hasError)}`}
       >
         {selected?.label}
         <img
@@ -91,6 +94,7 @@ export default function CustomSelect({ value, onChange, options, hasError, id: e
               key={option.value}
               id={`${id}-option-${option.value}`}
               role="option"
+              tabIndex={-1}
               aria-selected={option.value === value}
               onClick={() => {
                 onChange(option.value)

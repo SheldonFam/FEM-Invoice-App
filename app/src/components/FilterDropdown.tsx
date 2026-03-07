@@ -1,36 +1,25 @@
-import { useId, useRef, useState, useEffect } from 'react'
+import { useCallback, useId, useRef, useState } from 'react'
 import { useInvoiceStore } from '../store/useInvoiceStore'
+import { useShallow } from 'zustand/react/shallow'
 import type { InvoiceStatus } from '../types/invoice'
+import { useClickOutside } from '../hooks/useClickOutside'
+import { useEscapeKey } from '../hooks/useEscapeKey'
+import { getErrorMessage } from '../lib/ui'
 
 const STATUSES: InvoiceStatus[] = ['draft', 'pending', 'paid']
 
-export default function FilterDropdown() {
+export default function FilterDropdown({ onError }: { onError?: (msg: string) => void }) {
   const [isOpen, setIsOpen] = useState(false)
-  const { filters, toggleFilter } = useInvoiceStore()
+  const { filters, toggleFilter } = useInvoiceStore(
+    useShallow((s) => ({ filters: s.filters, toggleFilter: s.toggleFilter })),
+  )
   const ref = useRef<HTMLDivElement>(null)
   const id = useId()
   const listboxId = `${id}-listbox`
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  useEffect(() => {
-    if (!isOpen) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [isOpen])
+  const close = useCallback(() => setIsOpen(false), [])
+  useClickOutside(ref, close)
+  useEscapeKey(isOpen, close)
 
   return (
     <div ref={ref} className="relative">
@@ -72,7 +61,7 @@ export default function FilterDropdown() {
                         id={checkboxId}
                         type="checkbox"
                         checked={checked}
-                        onChange={() => toggleFilter(status)}
+                        onChange={() => toggleFilter(status).catch(err => onError?.(getErrorMessage(err, 'Failed to filter invoices')))}
                         className="peer sr-only"
                       />
                       <span

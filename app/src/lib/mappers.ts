@@ -1,4 +1,4 @@
-import type { Invoice, InvoiceItem } from "../types/invoice";
+import type { Invoice, InvoiceItem, InvoiceStatus, PaymentTerms } from "../types/invoice";
 import type { InvoiceFormValues } from "./schemas";
 
 // ── Raw API shapes ─────────────────────────────────────────────────────────────
@@ -15,10 +15,10 @@ export interface ApiInvoice {
   created_at: string;
   payment_due: string;
   description: string;
-  payment_terms: number;
+  payment_terms: PaymentTerms;
   client_name: string;
   client_email: string;
-  status: string;
+  status: InvoiceStatus;
   sender_address: ApiAddress;
   client_address: ApiAddress;
   items: Array<{
@@ -43,10 +43,10 @@ export function fromApiInvoice(data: ApiInvoice): Invoice {
     createdAt: data.created_at,
     paymentDue: data.payment_due,
     description: data.description,
-    paymentTerms: data.payment_terms as Invoice["paymentTerms"],
+    paymentTerms: data.payment_terms,
     clientName: data.client_name,
     clientEmail: data.client_email,
-    status: data.status as Invoice["status"],
+    status: data.status,
     senderAddress: {
       street: data.sender_address.street,
       city: data.sender_address.city,
@@ -111,6 +111,7 @@ export function toApiCreateBody(
 // ── Frontend form values → API update body ─────────────────────────────────────
 
 export function toApiUpdateBody(values: InvoiceFormValues) {
-  const { ...rest } = toApiCreateBody(values, "pending");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { submit_mode, ...rest } = toApiCreateBody(values, "pending");
   return rest;
 }

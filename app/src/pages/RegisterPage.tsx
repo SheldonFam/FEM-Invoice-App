@@ -5,23 +5,19 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { registerSchema, type RegisterFormValues } from '../lib/schemas'
 import { useAuthStore } from '../store/useAuthStore'
 import FormField from '../components/FormField'
+import ErrorBanner from '../components/ErrorBanner'
+import { inputCx, btnCx, getErrorMessage } from '../lib/ui'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const register_ = useAuthStore(state => state.register)
   const [serverError, setServerError] = useState<string | null>(null)
+  useDocumentTitle('Create account')
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
   })
-
-  function inputCx(hasError?: boolean) {
-    return `w-full rounded-sm border bg-transparent px-5 py-4 text-sm font-bold text-ink outline-none transition-colors focus:border-purple dark:text-white ${
-      hasError
-        ? 'border-delete'
-        : 'border-border hover:border-purple dark:border-border-dark'
-    }`
-  }
 
   async function onSubmit(values: RegisterFormValues) {
     setServerError(null)
@@ -29,7 +25,7 @@ export default function RegisterPage() {
       await register_(values.name, values.email, values.password)
       navigate('/')
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : 'Something went wrong')
+      setServerError(getErrorMessage(err))
     }
   }
 
@@ -51,6 +47,7 @@ export default function RegisterPage() {
               type="text"
               placeholder="Alex Johnson"
               autoComplete="name"
+              aria-required="true"
               {...register('name')}
               className={inputCx(!!errors.name)}
             />
@@ -61,6 +58,7 @@ export default function RegisterPage() {
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
+              aria-required="true"
               {...register('email')}
               className={inputCx(!!errors.email)}
             />
@@ -71,6 +69,7 @@ export default function RegisterPage() {
               type="password"
               placeholder="••••••••"
               autoComplete="new-password"
+              aria-required="true"
               {...register('password')}
               className={inputCx(!!errors.password)}
             />
@@ -81,21 +80,18 @@ export default function RegisterPage() {
               type="password"
               placeholder="••••••••"
               autoComplete="new-password"
+              aria-required="true"
               {...register('confirmPassword')}
               className={inputCx(!!errors.confirmPassword)}
             />
           </FormField>
 
-          {serverError && (
-            <p className="rounded-sm bg-delete/10 px-4 py-3 text-sm font-bold text-delete">
-              {serverError}
-            </p>
-          )}
+          {serverError && <ErrorBanner message={serverError} />}
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full cursor-pointer rounded-full bg-purple py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light disabled:opacity-60"
+            className={`w-full ${btnCx.primary} disabled:opacity-60`}
           >
             {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>

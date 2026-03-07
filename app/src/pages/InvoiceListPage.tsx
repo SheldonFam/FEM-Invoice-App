@@ -1,19 +1,35 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useInvoiceStore } from '../store/useInvoiceStore'
+import { useShallow } from 'zustand/react/shallow'
 import InvoiceCard from '../components/InvoiceCard'
 import FilterDropdown from '../components/FilterDropdown'
 import EmptyState from '../components/EmptyState'
-import InvoiceForm from '../components/InvoiceForm'
-import { useState } from 'react'
+import ErrorBanner from '../components/ErrorBanner'
+import { getErrorMessage } from '../lib/ui'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
+const InvoiceForm = lazy(() => import('../components/InvoiceForm'))
 
 export default function InvoiceListPage() {
-  const { invoices, isLoading, fetchInvoices, total, limit, offset, setPage } = useInvoiceStore()
+  const { invoices, isLoading, fetchInvoices, total, limit, offset, setPage } = useInvoiceStore(
+    useShallow((s) => ({
+      invoices: s.invoices,
+      isLoading: s.isLoading,
+      fetchInvoices: s.fetchInvoices,
+      total: s.total,
+      limit: s.limit,
+      offset: s.offset,
+      setPage: s.setPage,
+    })),
+  )
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+  useDocumentTitle('Invoices')
 
-  // Initial load
   useEffect(() => {
     fetchInvoices()
-  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+      .then(() => setFetchError(null))
+      .catch(err => setFetchError(getErrorMessage(err, 'Failed to load invoices')))
+  }, [fetchInvoices])
 
   const currentPage = Math.floor(offset / limit) + 1
   const totalPages = Math.ceil(total / limit)
@@ -37,7 +53,7 @@ export default function InvoiceListPage() {
         </div>
 
         <div className="flex items-center gap-5 md:gap-10">
-          <FilterDropdown />
+          <FilterDropdown onError={setFetchError} />
 
           <button
             type="button"
@@ -54,6 +70,12 @@ export default function InvoiceListPage() {
           </button>
         </div>
       </div>
+
+      {fetchError && (
+        <div className="mt-8">
+          <ErrorBanner message={fetchError} />
+        </div>
+      )}
 
       {/* List */}
       <div className="mt-16 flex flex-col gap-4">
@@ -75,36 +97,42 @@ export default function InvoiceListPage() {
 
       {/* Pagination */}
       {!isLoading && total > limit && (
-        <div className="mt-8 flex items-center justify-between">
+        <nav aria-label="Pagination" className="mt-8 flex items-center justify-between">
           <p className="text-sm text-muted">
             Showing {showingFrom}–{showingTo} of {total}
           </p>
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setPage(offset - limit)}
+              onClick={() => setPage(offset - limit).catch(err => setFetchError(getErrorMessage(err, 'Failed to load invoices')))}
               disabled={offset === 0}
+              aria-label={`Go to previous page, page ${currentPage - 1} of ${totalPages}`}
               className="rounded-full bg-card px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-card-dark dark:text-white dark:hover:bg-purple"
             >
               Previous
             </button>
             <button
               type="button"
-              onClick={() => setPage(offset + limit)}
+              onClick={() => setPage(offset + limit).catch(err => setFetchError(getErrorMessage(err, 'Failed to load invoices')))}
               disabled={currentPage >= totalPages}
+              aria-label={`Go to next page, page ${currentPage + 1} of ${totalPages}`}
               className="rounded-full bg-card px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-card-dark dark:text-white dark:hover:bg-purple"
             >
               Next
             </button>
           </div>
-        </div>
+        </nav>
       )}
 
-      <InvoiceForm
-        mode="create"
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-      />
+      {isFormOpen && (
+        <Suspense fallback={null}>
+          <InvoiceForm
+            mode="create"
+            isOpen={isFormOpen}
+            onClose={() => setIsFormOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }
