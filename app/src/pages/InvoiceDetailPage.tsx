@@ -12,6 +12,7 @@ import { downloadPdf, viewPdf } from "../lib/api";
 import { btnCx, getErrorMessage } from "../lib/ui";
 import { useAsyncAction } from "../hooks/useAsyncAction";
 import ErrorBanner from "../components/ErrorBanner";
+import { useDocumentTitle } from "../hooks/useDocumentTitle";
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +43,7 @@ export default function InvoiceDetailPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   const invoice = invoices.find((inv) => inv.id === id);
+  useDocumentTitle(invoice ? `Invoice #${invoice.id}` : 'Invoice');
 
   const errorHandlers = {
     onStart: () => setActionError(null),

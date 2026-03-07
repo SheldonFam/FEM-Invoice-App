@@ -7,11 +7,13 @@ import { useAuthStore } from '../store/useAuthStore'
 import FormField from '../components/FormField'
 import ErrorBanner from '../components/ErrorBanner'
 import { inputCx, btnCx, getErrorMessage } from '../lib/ui'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const register_ = useAuthStore(state => state.register)
   const [serverError, setServerError] = useState<string | null>(null)
+  useDocumentTitle('Create account')
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -45,6 +47,7 @@ export default function RegisterPage() {
               type="text"
               placeholder="Alex Johnson"
               autoComplete="name"
+              aria-required="true"
               {...register('name')}
               className={inputCx(!!errors.name)}
             />
@@ -55,6 +58,7 @@ export default function RegisterPage() {
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
+              aria-required="true"
               {...register('email')}
               className={inputCx(!!errors.email)}
             />
@@ -65,6 +69,7 @@ export default function RegisterPage() {
               type="password"
               placeholder="••••••••"
               autoComplete="new-password"
+              aria-required="true"
               {...register('password')}
               className={inputCx(!!errors.password)}
             />
@@ -75,6 +80,7 @@ export default function RegisterPage() {
               type="password"
               placeholder="••••••••"
               autoComplete="new-password"
+              aria-required="true"
               {...register('confirmPassword')}
               className={inputCx(!!errors.confirmPassword)}
             />

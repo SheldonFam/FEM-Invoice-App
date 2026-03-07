@@ -38,7 +38,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthRedirectListener />
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-muted">Loading…</div>}>
+      <Suspense fallback={<div role="status" className="flex min-h-screen items-center justify-center text-muted">Loading…</div>}>
       <Routes>
         {/* Public routes — no sidebar */}
         <Route path="/login" element={<LoginPage />} />

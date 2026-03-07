@@ -112,7 +112,7 @@ function ItemRow({ index, control, register, errors, remove }: {
         type="button"
         onClick={() => remove(index)}
         aria-label={`Remove item ${index + 1}`}
-        className="mb-[14px] cursor-pointer opacity-60 transition-opacity hover:opacity-100 md:mb-0"
+        className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center opacity-60 transition-opacity hover:opacity-100"
       >
         <img src="/assets/icon-delete.svg" alt="" width={13} height={16} />
       </button>
@@ -358,7 +358,7 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => submit('draft')}
-                className="cursor-pointer rounded-full bg-body px-6 py-4 text-sm font-bold text-muted transition-colors hover:bg-ink disabled:opacity-60 dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
+                className="cursor-pointer rounded-full bg-sidebar px-6 py-4 text-sm font-bold text-fog transition-colors hover:bg-ink disabled:opacity-60 dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
               >
                 {isSubmitting && submitMode.current === 'draft' ? 'Saving…' : 'Save as Draft'}
               </button>

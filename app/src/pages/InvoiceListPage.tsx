@@ -6,6 +6,7 @@ import FilterDropdown from '../components/FilterDropdown'
 import EmptyState from '../components/EmptyState'
 import ErrorBanner from '../components/ErrorBanner'
 import { getErrorMessage } from '../lib/ui'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 const InvoiceForm = lazy(() => import('../components/InvoiceForm'))
 
 export default function InvoiceListPage() {
@@ -22,6 +23,7 @@ export default function InvoiceListPage() {
   )
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  useDocumentTitle('Invoices')
 
   useEffect(() => {
     fetchInvoices().catch(err => setFetchError(getErrorMessage(err, 'Failed to load invoices')))
@@ -93,7 +95,7 @@ export default function InvoiceListPage() {
 
       {/* Pagination */}
       {!isLoading && total > limit && (
-        <div className="mt-8 flex items-center justify-between">
+        <nav aria-label="Pagination" className="mt-8 flex items-center justify-between">
           <p className="text-sm text-muted">
             Showing {showingFrom}–{showingTo} of {total}
           </p>
@@ -102,6 +104,7 @@ export default function InvoiceListPage() {
               type="button"
               onClick={() => setPage(offset - limit)}
               disabled={offset === 0}
+              aria-label={`Go to previous page, page ${currentPage - 1} of ${totalPages}`}
               className="rounded-full bg-card px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-card-dark dark:text-white dark:hover:bg-purple"
             >
               Previous
@@ -110,12 +113,13 @@ export default function InvoiceListPage() {
               type="button"
               onClick={() => setPage(offset + limit)}
               disabled={currentPage >= totalPages}
+              aria-label={`Go to next page, page ${currentPage + 1} of ${totalPages}`}
               className="rounded-full bg-card px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-card-dark dark:text-white dark:hover:bg-purple"
             >
               Next
             </button>
           </div>
-        </div>
+        </nav>
       )}
 
       {isFormOpen && (

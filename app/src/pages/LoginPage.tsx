@@ -7,11 +7,13 @@ import { useAuthStore } from '../store/useAuthStore'
 import FormField from '../components/FormField'
 import ErrorBanner from '../components/ErrorBanner'
 import { inputCx, btnCx, getErrorMessage } from '../lib/ui'
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const login = useAuthStore(state => state.login)
   const [serverError, setServerError] = useState<string | null>(null)
+  useDocumentTitle('Sign in')
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -45,6 +47,7 @@ export default function LoginPage() {
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
+              aria-required="true"
               {...register('email')}
               className={inputCx(!!errors.email)}
             />
@@ -55,6 +58,7 @@ export default function LoginPage() {
               type="password"
               placeholder="••••••••"
               autoComplete="current-password"
+              aria-required="true"
               {...register('password')}
               className={inputCx(!!errors.password)}
             />

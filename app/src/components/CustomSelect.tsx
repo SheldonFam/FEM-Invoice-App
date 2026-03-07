@@ -32,7 +32,12 @@ export default function CustomSelect({ value, onChange, options, hasError, id: e
       setIsOpen(false)
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      setIsOpen(o => !o)
+      if (isOpen) {
+        // Commit the current selection and close
+        setIsOpen(false)
+      } else {
+        setIsOpen(true)
+      }
     } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       if (!isOpen) {
@@ -48,7 +53,14 @@ export default function CustomSelect({ value, onChange, options, hasError, id: e
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div
+      ref={ref}
+      className="relative"
+      onBlur={(e) => {
+        // Close when focus leaves the entire component (trigger + listbox)
+        if (!ref.current?.contains(e.relatedTarget as Node)) setIsOpen(false)
+      }}
+    >
       <button
         type="button"
         id={id}
@@ -82,6 +94,7 @@ export default function CustomSelect({ value, onChange, options, hasError, id: e
               key={option.value}
               id={`${id}-option-${option.value}`}
               role="option"
+              tabIndex={-1}
               aria-selected={option.value === value}
               onClick={() => {
                 onChange(option.value)
