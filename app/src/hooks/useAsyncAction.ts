@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
+import { getErrorMessage } from "../lib/ui";
 
 export function useAsyncAction(
   action: () => Promise<unknown>,
@@ -11,11 +12,8 @@ export function useAsyncAction(
   const [isLoading, setIsLoading] = useState(false);
   const actionRef = useRef(action);
   const optionsRef = useRef(options);
-
-  useEffect(() => {
-    actionRef.current = action;
-    optionsRef.current = options;
-  });
+  actionRef.current = action;
+  optionsRef.current = options;
 
   const execute = useCallback(async () => {
     setIsLoading(true);
@@ -23,11 +21,14 @@ export function useAsyncAction(
     try {
       await actionRef.current();
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = getErrorMessage(err, String(err));
       const ctx = optionsRef.current?.context;
-      optionsRef.current?.onError?.(
-        new Error(ctx ? `Failed to ${ctx}: ${message}` : message),
-      );
+      const wrapped = new Error(ctx ? `Failed to ${ctx}: ${message}` : message);
+      if (optionsRef.current?.onError) {
+        optionsRef.current.onError(wrapped);
+      } else {
+        throw wrapped;
+      }
     } finally {
       setIsLoading(false);
     }

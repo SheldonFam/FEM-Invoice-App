@@ -1,13 +1,15 @@
-import { Fragment, useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useInvoiceStore } from "../store/useInvoiceStore";
+import { useShallow } from "zustand/react/shallow";
 import StatusBadge from "../components/StatusBadge";
 import DeleteModal from "../components/DeleteModal";
-import InvoiceForm from "../components/InvoiceForm";
+const InvoiceForm = lazy(() => import("../components/InvoiceForm"));
 import ActionMenu from "../components/ActionMenu";
 import type { MenuItem } from "../components/ActionMenu";
 import { formatDate, formatCurrency } from "../lib/utils";
-import { downloadPdf, viewPdf, api } from "../lib/api";
+import { downloadPdf, viewPdf } from "../lib/api";
+import { btnCx, getErrorMessage } from "../lib/ui";
 import { useAsyncAction } from "../hooks/useAsyncAction";
 import ErrorBanner from "../components/ErrorBanner";
 
@@ -21,11 +23,23 @@ export default function InvoiceDetailPage() {
     deleteInvoice,
     markAsPaid,
     duplicateInvoice,
-  } = useInvoiceStore();
+    sendEmail,
+  } = useInvoiceStore(
+    useShallow((s) => ({
+      invoices: s.invoices,
+      isLoading: s.isLoading,
+      fetchInvoice: s.fetchInvoice,
+      deleteInvoice: s.deleteInvoice,
+      markAsPaid: s.markAsPaid,
+      duplicateInvoice: s.duplicateInvoice,
+      sendEmail: s.sendEmail,
+    })),
+  );
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const invoice = invoices.find((inv) => inv.id === id);
 
@@ -56,7 +70,7 @@ export default function InvoiceDetailPage() {
   );
   const [handleSendEmail, isSendingEmail] = useAsyncAction(
     async () => {
-      if (invoice) await api.post(`/invoices/${invoice.id}/send-email`);
+      if (invoice) await sendEmail(invoice.id);
     },
     { ...errorHandlers, context: "send email" },
   );
@@ -67,10 +81,11 @@ export default function InvoiceDetailPage() {
     { ...errorHandlers, context: "mark as paid" },
   );
 
-  // Fetch if not in store (e.g. direct navigation)
   useEffect(() => {
-    if (!invoice && id) fetchInvoice(id);
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!invoice && id) {
+      fetchInvoice(id).catch(err => setFetchError(getErrorMessage(err, 'Failed to load invoice')))
+    }
+  }, [id, invoice, fetchInvoice]);
 
   if (isLoading && !invoice) {
     return (
@@ -81,12 +96,36 @@ export default function InvoiceDetailPage() {
     );
   }
 
-  if (!invoice) return null;
+  if (!invoice) {
+    return (
+      <div className="mx-auto max-w-[730px] px-6 py-8 md:py-[72px]">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-6 text-sm font-bold text-ink transition-colors hover:text-muted dark:text-white dark:hover:text-muted"
+        >
+          <img src="/assets/icon-arrow-left.svg" alt="" width={7} height={10} />
+          Go back
+        </Link>
+        {fetchError ? (
+          <div className="mt-8">
+            <ErrorBanner message={fetchError} />
+          </div>
+        ) : (
+          <p className="mt-8 text-center text-muted">Invoice not found.</p>
+        )}
+      </div>
+    );
+  }
 
   async function handleDelete() {
     if (!invoice) return;
-    await deleteInvoice(invoice.id);
-    navigate("/");
+    try {
+      await deleteInvoice(invoice.id);
+      navigate("/");
+    } catch (err) {
+      setIsDeleteOpen(false);
+      setActionError(getErrorMessage(err, "Failed to delete invoice"));
+    }
   }
 
   const moreMenuItems: MenuItem[] = [
@@ -125,14 +164,14 @@ export default function InvoiceDetailPage() {
       <button
         type="button"
         onClick={() => setIsEditOpen(true)}
-        className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
+        className={btnCx.secondary}
       >
         Edit
       </button>
       <button
         type="button"
         onClick={() => setIsDeleteOpen(true)}
-        className="cursor-pointer rounded-full bg-delete px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-delete-hover"
+        className={btnCx.destructive}
       >
         Delete
       </button>
@@ -140,7 +179,7 @@ export default function InvoiceDetailPage() {
         <button
           type="button"
           onClick={handleMarkAsPaid}
-          className="cursor-pointer rounded-full bg-purple px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light"
+          className={btnCx.primary}
         >
           Mark as Paid
         </button>
@@ -150,7 +189,7 @@ export default function InvoiceDetailPage() {
   );
 
   return (
-    <div id="main-content" className="mx-auto max-w-[730px] px-6 py-8 pb-28 md:py-[72px] md:pb-[72px]">
+    <div className="mx-auto max-w-[730px] px-6 py-8 pb-28 md:py-[72px] md:pb-[72px]">
       {/* Go back */}
       <Link
         to="/"
@@ -243,35 +282,34 @@ export default function InvoiceDetailPage() {
 
         {/* Item table */}
         <div className="mt-10 overflow-hidden rounded-lg">
-          <div className="bg-surface p-8 dark:bg-input-dark">
-            {/* Header */}
-            <div className="grid grid-cols-[1fr_60px_100px_100px] gap-x-4">
-              <span className="text-sm text-label">Item Name</span>
-              <span className="text-right text-sm text-label">QTY.</span>
-              <span className="text-right text-sm text-label">Price</span>
-              <span className="text-right text-sm text-label">Total</span>
-            </div>
-
-            {/* Rows */}
-            {invoice.items.map((item, i) => (
-              <Fragment key={i}>
-                <div className="mt-8 grid grid-cols-[1fr_60px_100px_100px] items-center gap-x-4">
-                  <span className="text-sm font-bold text-ink dark:text-white">
+          <table className="w-full bg-surface dark:bg-input-dark">
+            <thead>
+              <tr>
+                <th className="px-8 pt-8 pb-4 text-left text-sm font-normal text-label">Item Name</th>
+                <th className="pt-8 pb-4 text-right text-sm font-normal text-label w-[60px]">QTY.</th>
+                <th className="pt-8 pb-4 text-right text-sm font-normal text-label w-[100px]">Price</th>
+                <th className="px-8 pt-8 pb-4 text-right text-sm font-normal text-label w-[100px]">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoice.items.map((item, i) => (
+                <tr key={i}>
+                  <td className="px-8 py-4 text-sm font-bold text-ink dark:text-white">
                     {item.name}
-                  </span>
-                  <span className="text-right text-sm font-bold text-label">
+                  </td>
+                  <td className="py-4 text-right text-sm font-bold text-label">
                     {item.quantity}
-                  </span>
-                  <span className="text-right text-sm font-bold text-label">
+                  </td>
+                  <td className="py-4 text-right text-sm font-bold text-label">
                     {formatCurrency(item.price)}
-                  </span>
-                  <span className="text-right text-sm font-bold text-ink dark:text-white">
+                  </td>
+                  <td className="px-8 py-4 text-right text-sm font-bold text-ink dark:text-white">
                     {formatCurrency(item.total)}
-                  </span>
-                </div>
-              </Fragment>
-            ))}
-          </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
           {/* Totals footer */}
           <div className="bg-sidebar px-8 py-6">
@@ -317,12 +355,16 @@ export default function InvoiceDetailPage() {
         />
       )}
 
-      <InvoiceForm
-        mode="edit"
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        invoice={invoice}
-      />
+      {isEditOpen && (
+        <Suspense fallback={null}>
+          <InvoiceForm
+            mode="edit"
+            isOpen={isEditOpen}
+            onClose={() => setIsEditOpen(false)}
+            invoice={invoice}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

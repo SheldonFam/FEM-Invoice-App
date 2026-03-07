@@ -8,6 +8,9 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'react-hook-form', 'zod', 'zustand'],
   },
+  esbuild: {
+    drop: ['console', 'debugger'],
+  },
   build: {
     target: 'es2022',
     rollupOptions: {

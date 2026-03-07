@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { btnCx } from '../lib/ui'
 
 interface Props {
   invoiceId: string
@@ -9,9 +10,7 @@ interface Props {
 export default function DeleteModal({ invoiceId, onConfirm, onCancel }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const onCancelRef = useRef(onCancel)
-  useEffect(() => {
-    onCancelRef.current = onCancel
-  })
+  useEffect(() => { onCancelRef.current = onCancel })
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -43,14 +42,14 @@ export default function DeleteModal({ invoiceId, onConfirm, onCancel }: Props) {
         <button
           type="button"
           onClick={() => dialogRef.current?.close()}
-          className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-muted transition-colors hover:bg-border dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
+          className={btnCx.secondary}
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={onConfirm}
-          className="cursor-pointer rounded-full bg-delete px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-delete-hover"
+          className={btnCx.destructive}
         >
           Delete
         </button>

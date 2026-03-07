@@ -18,11 +18,16 @@ export default function SlidePanel({ isOpen, onClose, 'aria-label': ariaLabel, c
 
     if (!dialog.open) dialog.showModal()
     // Double rAF ensures the browser paints the off-screen state before animating in
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => setAnimateIn(true))
+    let innerRaf: number | undefined
+    const outerRaf = requestAnimationFrame(() => {
+      innerRaf = requestAnimationFrame(() => setAnimateIn(true))
     })
 
-    return () => { setAnimateIn(false) }
+    return () => {
+      cancelAnimationFrame(outerRaf)
+      if (innerRaf !== undefined) cancelAnimationFrame(innerRaf)
+      setAnimateIn(false)
+    }
   }, [isOpen])
 
   const isVisible = isOpen && animateIn

@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { formatDate } from '../lib/utils'
+import { useClickOutside } from '../hooks/useClickOutside'
+import { useEscapeKey } from '../hooks/useEscapeKey'
+import { inputCx } from '../lib/ui'
 
 interface Props {
   value: string // YYYY-MM-DD
@@ -50,24 +53,9 @@ export default function DatePicker({ value, onChange, hasError, id }: Props) {
     })
   }
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  useEffect(() => {
-    if (!isOpen) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false)
-    }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [isOpen])
+  const close = useCallback(() => setIsOpen(false), [])
+  useClickOutside(ref, close)
+  useEscapeKey(isOpen, close)
 
   function prevMonth() {
     if (viewMonth === 0) {
@@ -125,11 +113,7 @@ export default function DatePicker({ value, onChange, hasError, id }: Props) {
         id={id}
         onClick={toggleOpen}
         aria-label={value ? `Selected date: ${formatDate(value)}. Click to change` : 'Choose a date'}
-        className={`flex w-full cursor-pointer items-center justify-between rounded-sm border bg-transparent px-5 py-4 text-left text-sm font-bold text-ink outline-none transition-colors focus-visible:border-purple focus-visible:ring-2 focus-visible:ring-purple/25 dark:text-white ${
-          hasError
-            ? 'border-delete'
-            : 'border-border hover:border-purple dark:border-border-dark'
-        }`}
+        className={`flex cursor-pointer items-center justify-between text-left ${inputCx(hasError)}`}
       >
         {value ? formatDate(value) : 'Select date'}
         <img src="/assets/icon-calendar.svg" alt="" width={16} height={16} aria-hidden="true" />

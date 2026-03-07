@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useId, useRef, useState } from 'react'
+import { useClickOutside } from '../hooks/useClickOutside'
+import { inputCx } from '../lib/ui'
 
 interface Option {
   value: number
@@ -22,15 +24,8 @@ export default function CustomSelect({ value, onChange, options, hasError, id: e
 
   const selected = options.find(o => o.value === value)
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+  const close = useCallback(() => setIsOpen(false), [])
+  useClickOutside(ref, close)
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Escape') {
@@ -63,11 +58,7 @@ export default function CustomSelect({ value, onChange, options, hasError, id: e
         aria-controls={listboxId}
         onClick={() => setIsOpen(o => !o)}
         onKeyDown={handleKeyDown}
-        className={`flex w-full cursor-pointer items-center justify-between rounded-sm border bg-transparent px-5 py-4 text-left text-sm font-bold text-ink outline-none transition-colors focus-visible:border-purple focus-visible:ring-2 focus-visible:ring-purple/25 dark:text-white ${
-          hasError
-            ? 'border-delete'
-            : 'border-border hover:border-purple dark:border-border-dark'
-        }`}
+        className={`flex cursor-pointer items-center justify-between text-left ${inputCx(hasError)}`}
       >
         {selected?.label}
         <img

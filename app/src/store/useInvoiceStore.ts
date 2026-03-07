@@ -7,7 +7,6 @@ interface InvoiceStore {
   invoices: Invoice[]
   filters: InvoiceStatus[]
   isLoading: boolean
-  error: string | null
 
   // Pagination
   total: number
@@ -26,6 +25,7 @@ interface InvoiceStore {
   // Status actions
   markAsPaid: (id: string) => Promise<void>
   duplicateInvoice: (id: string) => Promise<Invoice>
+  sendEmail: (id: string) => Promise<void>
 
   // UI state
   toggleFilter: (status: InvoiceStatus) => void
@@ -38,7 +38,6 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
   invoices: [],
   filters: [],
   isLoading: false,
-  error: null,
   total: 0,
   limit: 20,
   offset: 0,
@@ -49,7 +48,7 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
     fetchController = new AbortController()
     const { signal } = fetchController
 
-    set({ isLoading: true, error: null })
+    set({ isLoading: true })
     try {
       const { filters, limit, offset } = get()
       const params = new URLSearchParams()
@@ -68,24 +67,25 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
       })
     } catch (err) {
       if (signal.aborted) return
-      set({ error: err instanceof Error ? err.message : 'Failed to load invoices', isLoading: false })
+      set({ isLoading: false })
+      throw err
     }
   },
 
   fetchInvoice: async (id) => {
-    set({ isLoading: true, error: null })
+    set({ isLoading: true })
     try {
       const data = await api.get<ApiInvoice>(`/invoices/${id}`)
       const invoice = fromApiInvoice(data)
       set(state => ({
         isLoading: false,
-        // Upsert into the invoices array
         invoices: state.invoices.some(inv => inv.id === id)
           ? state.invoices.map(inv => inv.id === id ? invoice : inv)
           : [invoice, ...state.invoices],
       }))
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : 'Invoice not found', isLoading: false })
+      set({ isLoading: false })
+      throw err
     }
   },
 
@@ -125,6 +125,10 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
     return invoice
   },
 
+  sendEmail: async (id) => {
+    await api.post(`/invoices/${id}/send-email`)
+  },
+
   toggleFilter: (status) => {
     set(state => ({
       offset: 0,
@@ -132,11 +136,11 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
         ? state.filters.filter(f => f !== status)
         : [...state.filters, status],
     }))
-    get().fetchInvoices()
+    get().fetchInvoices().catch(() => {})
   },
 
   setPage: (newOffset) => {
     set({ offset: newOffset })
-    get().fetchInvoices()
+    get().fetchInvoices().catch(() => {})
   },
 }))

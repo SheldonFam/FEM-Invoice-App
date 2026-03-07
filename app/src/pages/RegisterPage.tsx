@@ -6,7 +6,7 @@ import { registerSchema, type RegisterFormValues } from '../lib/schemas'
 import { useAuthStore } from '../store/useAuthStore'
 import FormField from '../components/FormField'
 import ErrorBanner from '../components/ErrorBanner'
-import { inputCx } from '../lib/ui'
+import { inputCx, btnCx, getErrorMessage } from '../lib/ui'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -23,7 +23,7 @@ export default function RegisterPage() {
       await register_(values.name, values.email, values.password)
       navigate('/')
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : 'Something went wrong')
+      setServerError(getErrorMessage(err))
     }
   }
 
@@ -85,7 +85,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full cursor-pointer rounded-full bg-purple py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light disabled:opacity-60"
+            className={`w-full ${btnCx.primary} disabled:opacity-60`}
           >
             {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>

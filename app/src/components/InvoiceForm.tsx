@@ -5,7 +5,7 @@ import type { Invoice } from '../types/invoice'
 import { draftSchema, pendingSchema, type InvoiceFormValues } from '../lib/schemas'
 import { useInvoiceStore } from '../store/useInvoiceStore'
 import { formatCurrency } from '../lib/utils'
-import { inputCx } from '../lib/ui'
+import { inputCx, btnCx, getErrorMessage } from '../lib/ui'
 import FormField from './FormField'
 import CustomSelect from './CustomSelect'
 import DatePicker from './DatePicker'
@@ -72,6 +72,7 @@ function ItemRow({ index, control, register, errors, remove }: {
         <label className="mb-2 block text-xs font-bold text-label md:hidden">Item Name</label>
         <input
           placeholder="Item name"
+          aria-label="Item name"
           {...register(`items.${index}.name`)}
           className={inputCx(!!errors.items?.[index]?.name)}
         />
@@ -82,6 +83,7 @@ function ItemRow({ index, control, register, errors, remove }: {
         <input
           type="number"
           min={0}
+          aria-label="Quantity"
           {...register(`items.${index}.quantity`, { valueAsNumber: true })}
           className={inputCx(!!errors.items?.[index]?.quantity)}
         />
@@ -93,6 +95,7 @@ function ItemRow({ index, control, register, errors, remove }: {
           type="number"
           min={0}
           step="0.01"
+          aria-label="Price"
           {...register(`items.${index}.price`, { valueAsNumber: true })}
           className={inputCx(!!errors.items?.[index]?.price)}
         />
@@ -108,7 +111,7 @@ function ItemRow({ index, control, register, errors, remove }: {
       <button
         type="button"
         onClick={() => remove(index)}
-        aria-label="Remove item"
+        aria-label={`Remove item ${index + 1}`}
         className="mb-[14px] cursor-pointer opacity-60 transition-opacity hover:opacity-100 md:mb-0"
       >
         <img src="/assets/icon-delete.svg" alt="" width={13} height={16} />
@@ -150,7 +153,7 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
     } catch (err) {
       // RHF keeps isSubmitting=false after this; surface error via setError
       form.setError('root', {
-        message: err instanceof Error ? err.message : 'Something went wrong',
+        message: getErrorMessage(err),
       })
     }
   }
@@ -292,7 +295,7 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
 
           {/* Item List */}
           <div>
-            <h3 className="mb-4 text-lg font-bold text-[#777F98]">Item List</h3>
+            <h3 className="mb-4 text-lg font-bold text-muted">Item List</h3>
 
             {fields.length > 0 && (
               <div className="mb-3 hidden grid-cols-[1fr_64px_100px_80px_13px] items-center gap-x-4 md:grid">
@@ -346,7 +349,7 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
+              className={btnCx.secondary}
             >
               Discard
             </button>
@@ -363,7 +366,7 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => submit('pending')}
-                className="cursor-pointer rounded-full bg-purple px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light disabled:opacity-60"
+                className={`${btnCx.primary} disabled:opacity-60`}
               >
                 {isSubmitting && submitMode.current === 'pending' ? 'Saving…' : 'Save & Send'}
               </button>
@@ -374,7 +377,7 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="cursor-pointer rounded-full bg-surface px-6 py-4 text-sm font-bold text-label transition-colors hover:bg-border dark:bg-input-dark dark:text-fog dark:hover:bg-sidebar"
+              className={btnCx.secondary}
             >
               Cancel
             </button>
@@ -382,7 +385,7 @@ export default function InvoiceForm({ isOpen, onClose, mode, invoice }: Props) {
               type="button"
               disabled={isSubmitting}
               onClick={() => submit('pending')}
-              className="cursor-pointer rounded-full bg-purple px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-purple-light disabled:opacity-60"
+              className={`${btnCx.primary} disabled:opacity-60`}
             >
               {isSubmitting ? 'Saving…' : 'Save Changes'}
             </button>

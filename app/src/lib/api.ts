@@ -1,21 +1,29 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api/v1'
 
+export const AUTH_SESSION_EXPIRED_EVENT = 'auth:session-expired'
+
+export const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'access_token',
+  REFRESH_TOKEN: 'refresh_token',
+  AUTH_USER: 'auth-user',
+} as const
+
 export function getToken(): string | null {
-  return localStorage.getItem('access_token')
+  return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
 }
 
 export function getRefreshToken(): string | null {
-  return localStorage.getItem('refresh_token')
+  return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
 }
 
 export function setTokens(accessToken: string, refreshToken: string): void {
-  localStorage.setItem('access_token', accessToken)
-  localStorage.setItem('refresh_token', refreshToken)
+  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken)
+  localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
 }
 
 export function clearTokens(): void {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
+  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
+  localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
 }
 
 let refreshPromise: Promise<void> | null = null
@@ -65,7 +73,7 @@ async function request<T>(path: string, options: RequestInit = {}, _retried = fa
       return request<T>(path, options, true)
     } catch {
       clearTokens()
-      window.location.href = '/login'
+      window.dispatchEvent(new Event(AUTH_SESSION_EXPIRED_EVENT))
       throw new Error('Session expired')
     }
   }

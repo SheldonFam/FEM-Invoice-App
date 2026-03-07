@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useClickOutside } from "../hooks/useClickOutside";
+import { useEscapeKey } from "../hooks/useEscapeKey";
 
 export interface MenuItem {
   label: string;
@@ -18,26 +20,9 @@ export default function ActionMenu({ items }: ActionMenuProps) {
   const id = useId();
   const menuId = `${id}-menu`;
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [isOpen]);
+  const close = useCallback(() => setIsOpen(false), []);
+  useClickOutside(ref, close);
+  useEscapeKey(isOpen, close);
 
   // Focus first item when menu opens
   useEffect(() => {
