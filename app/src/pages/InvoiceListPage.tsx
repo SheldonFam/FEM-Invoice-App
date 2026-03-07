@@ -26,7 +26,9 @@ export default function InvoiceListPage() {
   useDocumentTitle('Invoices')
 
   useEffect(() => {
-    fetchInvoices().catch(err => setFetchError(getErrorMessage(err, 'Failed to load invoices')))
+    fetchInvoices()
+      .then(() => setFetchError(null))
+      .catch(err => setFetchError(getErrorMessage(err, 'Failed to load invoices')))
   }, [fetchInvoices])
 
   const currentPage = Math.floor(offset / limit) + 1
@@ -51,7 +53,7 @@ export default function InvoiceListPage() {
         </div>
 
         <div className="flex items-center gap-5 md:gap-10">
-          <FilterDropdown />
+          <FilterDropdown onError={setFetchError} />
 
           <button
             type="button"
@@ -102,7 +104,7 @@ export default function InvoiceListPage() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setPage(offset - limit)}
+              onClick={() => setPage(offset - limit).catch(err => setFetchError(getErrorMessage(err, 'Failed to load invoices')))}
               disabled={offset === 0}
               aria-label={`Go to previous page, page ${currentPage - 1} of ${totalPages}`}
               className="rounded-full bg-card px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-card-dark dark:text-white dark:hover:bg-purple"
@@ -111,7 +113,7 @@ export default function InvoiceListPage() {
             </button>
             <button
               type="button"
-              onClick={() => setPage(offset + limit)}
+              onClick={() => setPage(offset + limit).catch(err => setFetchError(getErrorMessage(err, 'Failed to load invoices')))}
               disabled={currentPage >= totalPages}
               aria-label={`Go to next page, page ${currentPage + 1} of ${totalPages}`}
               className="rounded-full bg-card px-4 py-2 text-sm font-bold text-ink transition-colors hover:bg-purple hover:text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-card-dark dark:text-white dark:hover:bg-purple"

@@ -28,8 +28,8 @@ interface InvoiceStore {
   sendEmail: (id: string) => Promise<void>
 
   // UI state
-  toggleFilter: (status: InvoiceStatus) => void
-  setPage: (newOffset: number) => void
+  toggleFilter: (status: InvoiceStatus) => Promise<void>
+  setPage: (newOffset: number) => Promise<void>
 }
 
 let fetchController: AbortController | null = null
@@ -136,11 +136,11 @@ export const useInvoiceStore = create<InvoiceStore>()((set, get) => ({
         ? state.filters.filter(f => f !== status)
         : [...state.filters, status],
     }))
-    get().fetchInvoices().catch(() => {})
+    return get().fetchInvoices()
   },
 
   setPage: (newOffset) => {
     set({ offset: newOffset })
-    get().fetchInvoices().catch(() => {})
+    return get().fetchInvoices()
   },
 }))

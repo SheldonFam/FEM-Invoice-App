@@ -4,10 +4,11 @@ import { useShallow } from 'zustand/react/shallow'
 import type { InvoiceStatus } from '../types/invoice'
 import { useClickOutside } from '../hooks/useClickOutside'
 import { useEscapeKey } from '../hooks/useEscapeKey'
+import { getErrorMessage } from '../lib/ui'
 
 const STATUSES: InvoiceStatus[] = ['draft', 'pending', 'paid']
 
-export default function FilterDropdown() {
+export default function FilterDropdown({ onError }: { onError?: (msg: string) => void }) {
   const [isOpen, setIsOpen] = useState(false)
   const { filters, toggleFilter } = useInvoiceStore(
     useShallow((s) => ({ filters: s.filters, toggleFilter: s.toggleFilter })),
@@ -60,7 +61,7 @@ export default function FilterDropdown() {
                         id={checkboxId}
                         type="checkbox"
                         checked={checked}
-                        onChange={() => toggleFilter(status)}
+                        onChange={() => toggleFilter(status).catch(err => onError?.(getErrorMessage(err, 'Failed to filter invoices')))}
                         className="peer sr-only"
                       />
                       <span

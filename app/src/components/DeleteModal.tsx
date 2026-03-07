@@ -9,18 +9,10 @@ interface Props {
 
 export default function DeleteModal({ invoiceId, onConfirm, onCancel }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const onCancelRef = useRef(onCancel)
-  useEffect(() => { onCancelRef.current = onCancel })
+  const confirmedRef = useRef(false)
 
   useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-
-    dialog.showModal()
-
-    const handleClose = () => onCancelRef.current()
-    dialog.addEventListener('close', handleClose)
-    return () => dialog.removeEventListener('close', handleClose)
+    dialogRef.current?.showModal()
   }, [])
 
   return (
@@ -28,6 +20,9 @@ export default function DeleteModal({ invoiceId, onConfirm, onCancel }: Props) {
       ref={dialogRef}
       aria-labelledby="delete-modal-title"
       aria-describedby="delete-modal-desc"
+      onClose={() => {
+        if (!confirmedRef.current) onCancel()
+      }}
       onClick={e => { if (e.target === e.currentTarget) dialogRef.current?.close() }}
       className="fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-120 rounded-lg bg-card p-12 backdrop:bg-black/50 dark:bg-card-dark"
     >
@@ -48,7 +43,7 @@ export default function DeleteModal({ invoiceId, onConfirm, onCancel }: Props) {
         </button>
         <button
           type="button"
-          onClick={onConfirm}
+          onClick={() => { confirmedRef.current = true; onConfirm() }}
           className={btnCx.destructive}
         >
           Delete
